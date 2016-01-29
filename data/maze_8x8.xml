@@ -161,7 +161,7 @@
             <woodCost>800</woodCost>
             <timeCost>1785</timeCost>
             <name>TownHall</name>
-            <baseHealth>1200</baseHealth>
+            <baseHealth>2</baseHealth>
             <baseAttack>0</baseAttack>
             <piercingAttack>0</piercingAttack>
             <range>0</range>

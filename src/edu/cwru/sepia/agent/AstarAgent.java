@@ -33,6 +33,39 @@ public class AstarAgent extends Agent {
             this.cameFrom = cameFrom;
             this.cost = cost;
         }
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result + x;
+			result = prime * result + y;
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			MapLocation other = (MapLocation) obj;
+			if (!getOuterType().equals(other.getOuterType()))
+				return false;
+			if (x != other.x)
+				return false;
+			if (y != other.y)
+				return false;
+			return true;
+		}
+
+		private AstarAgent getOuterType() {
+			return AstarAgent.this;
+		}
+
     }
 
     Stack<MapLocation> path;
@@ -305,7 +338,7 @@ public class AstarAgent extends Agent {
      * @return Stack of positions with top of stack being first move in plan
      */
     private Stack<MapLocation> AstarSearch(MapLocation start, MapLocation goal, int xExtent, int yExtent, MapLocation enemyFootmanLoc, Set<MapLocation> resourceLocations)
-    {
+    {   
     	Stack<MapLocation> path = new Stack<MapLocation>();
     	PriorityQueue<MapLocation> openList = new PriorityQueue<MapLocation>(xExtent * yExtent, (o1, o2) -> {
     		if(o1.cost > o2.cost){
@@ -316,24 +349,20 @@ public class AstarAgent extends Agent {
     			return 0;
     		}
     	});
-    	HashMap<Integer, MapLocation> closedList = new HashMap<Integer, MapLocation>();
+    	Set<MapLocation> closedList = new HashSet<MapLocation>();
     	openList.add(start);
     	while(!openList.isEmpty()){
     		MapLocation current = openList.remove();
-    		if(current == null){
-    			continue;
-    		}
     		if(current.x == goal.x && current.y == goal.y){
     			MapLocation node = current.cameFrom;
     			while(node != null && !(node.x == start.x && node.y == start.y)){
     				path.push(node);
     				node = node.cameFrom;
     			}
-    			this.path = path;
     			return path;
     		} else {
     			// Add the current state to the closed list
-    			closedList.put(current.hashCode(), current);
+    			closedList.add(new MapLocation(current.x, current.y, null, 0));
     			// Add the new states to the open list if they do not appear in the closed list
     			// if it is already in the open list set parent pointer to minimum
     			
@@ -365,12 +394,12 @@ public class AstarAgent extends Agent {
 						break;
 					case WEST:
 						location = new MapLocation(current.x - 1, current.y, current, 0);
-					default:
-						break; 
+						break;
     				}
-    				assert(location != null);
     				location.cost = heuristic(location, goal);
-					if(location.y < yExtent && location.x < xExtent && location.y >= 0 && location.x >= 0 && !closedList.containsKey(location.hashCode()) && !isAResource(resourceLocations, location)){
+					if(location.y < yExtent && location.x < xExtent && location.y >= 0 && location.x >= 0 && 
+							!closedList.contains(location) && 
+							!resourceLocations.contains(location)){
 						if(!isOpenAndUpdate(location, openList)){
 							openList.add(location);
 						}
@@ -378,20 +407,10 @@ public class AstarAgent extends Agent {
     			}
     		}
     	}
-    	this.path = null;
+    	System.out.println("No available path.");
+    	System.exit(0);
         return null;
-    }   
-
-	private boolean isAResource(Set<MapLocation> resourceLocations, MapLocation location) {
-		Iterator<MapLocation> iterator = resourceLocations.iterator();
-		while(iterator.hasNext()){
-			MapLocation thing = iterator.next();
-			if(thing.x == location.x && thing.y == location.y){
-				return true;
-			}
-		}
-		return false;
-	}
+    }
 
 	private boolean isOpenAndUpdate(MapLocation location, PriorityQueue<MapLocation> openList) {
 		Iterator<MapLocation> iterator = openList.iterator();
@@ -399,7 +418,6 @@ public class AstarAgent extends Agent {
 			MapLocation e = iterator.next();
 			if(e.x == location.x && e.y == location.y){
 				if(e.cost > location.cost){
-					e = null;
 					openList.add(location);
 				}
 				return true;
