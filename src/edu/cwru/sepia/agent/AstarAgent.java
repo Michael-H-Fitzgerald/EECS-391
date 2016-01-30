@@ -353,6 +353,9 @@ public class AstarAgent extends Agent {
     	openList.add(start);
     	while(!openList.isEmpty()){
     		MapLocation current = openList.remove();
+    		if(current == null){
+    			continue;
+    		}
     		if(current.x == goal.x && current.y == goal.y){
     			MapLocation node = current.cameFrom;
     			while(node != null && !(node.x == start.x && node.y == start.y)){
@@ -396,6 +399,7 @@ public class AstarAgent extends Agent {
 						location = new MapLocation(current.x - 1, current.y, current, 0);
 						break;
     				}
+    				assert(location != null);
     				location.cost = heuristic(location, goal);
 					if(location.y < yExtent && location.x < xExtent && location.y >= 0 && location.x >= 0 && 
 							!closedList.contains(location) && 
@@ -418,6 +422,8 @@ public class AstarAgent extends Agent {
 			MapLocation e = iterator.next();
 			if(e.x == location.x && e.y == location.y){
 				if(e.cost > location.cost){
+					System.out.println("this happend check the open list");
+					e = null;
 					openList.add(location);
 				}
 				return true;
