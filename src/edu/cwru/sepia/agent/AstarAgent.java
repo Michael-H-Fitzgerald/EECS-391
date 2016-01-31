@@ -20,20 +20,36 @@ import edu.cwru.sepia.util.Direction;
 
 public class AstarAgent extends Agent {
 
-    class MapLocation
+	private static final long serialVersionUID = 1L;
+
+	class MapLocation
     {
         public int x, y;
-        public MapLocation cameFrom;
-        public float cost;
 
         public MapLocation(int x, int y, MapLocation cameFrom, float cost)
         {
             this.x = x;
             this.y = y;
-            this.cameFrom = cameFrom;
-            this.cost = cost;
         }
-
+    }
+    
+	class MapLocationWrapper {
+		public int x, y;
+		
+		public MapLocationWrapper(MapLocation loc){
+			this.x = loc.x;
+			this.y = loc.y;
+		}
+		
+		public MapLocationWrapper(int x, int y){
+			this.x = x;
+			this.y = y;
+		}
+		
+		public MapLocation getMapLocation(){
+			return new MapLocation(x, y, null, 0);
+		}
+		
 		@Override
 		public int hashCode() {
 			final int prime = 31;
@@ -43,7 +59,6 @@ public class AstarAgent extends Agent {
 			result = prime * result + y;
 			return result;
 		}
-
 		@Override
 		public boolean equals(Object obj) {
 			if (this == obj)
@@ -52,7 +67,7 @@ public class AstarAgent extends Agent {
 				return false;
 			if (getClass() != obj.getClass())
 				return false;
-			MapLocation other = (MapLocation) obj;
+			MapLocationWrapper other = (MapLocationWrapper) obj;
 			if (!getOuterType().equals(other.getOuterType()))
 				return false;
 			if (x != other.x)
@@ -61,13 +76,24 @@ public class AstarAgent extends Agent {
 				return false;
 			return true;
 		}
-
 		private AstarAgent getOuterType() {
 			return AstarAgent.this;
 		}
+	}
+	
+    class SearchNode {
+        public MapLocationWrapper location;
+        public SearchNode cameFrom;
+        public float cost;
 
+        public SearchNode(MapLocationWrapper location, SearchNode cameFrom, float cost)
+        {
+        	this.location = location;
+            this.cameFrom = cameFrom;
+            this.cost = cost;
+        }
     }
-
+    
     Stack<MapLocation> path;
     int footmanID, townhallID, enemyFootmanID;
     MapLocation nextLoc;
@@ -340,7 +366,7 @@ public class AstarAgent extends Agent {
     private Stack<MapLocation> AstarSearch(MapLocation start, MapLocation goal, int xExtent, int yExtent, MapLocation enemyFootmanLoc, Set<MapLocation> resourceLocations)
     {   
     	Stack<MapLocation> path = new Stack<MapLocation>();
-    	PriorityQueue<MapLocation> openList = new PriorityQueue<MapLocation>(xExtent * yExtent, (o1, o2) -> {
+    	PriorityQueue<SearchNode> openList = new PriorityQueue<SearchNode>(xExtent * yExtent, (o1, o2) -> {
     		if(o1.cost > o2.cost){
     			return 1;
     		} else if (o1.cost < o2.cost){
@@ -349,63 +375,79 @@ public class AstarAgent extends Agent {
     			return 0;
     		}
     	});
-    	Set<MapLocation> closedList = new HashSet<MapLocation>();
-    	openList.add(start);
+    	Set<MapLocationWrapper> openListSet = new HashSet<MapLocationWrapper>();
+    	Set<MapLocationWrapper> resources = new HashSet<MapLocationWrapper>();
+    	resourceLocations.stream().forEach(e -> resources.add(new MapLocationWrapper(e)));
+    	Set<MapLocationWrapper> closedList = new HashSet<MapLocationWrapper>();
+    	openList.add(new SearchNode(new MapLocationWrapper(start), null, 0));
     	while(!openList.isEmpty()){
-    		MapLocation current = openList.remove();
-    		if(current == null){
+    		SearchNode current = openList.remove();
+    		if(current.location == null){
     			continue;
     		}
-    		if(current.x == goal.x && current.y == goal.y){
-    			MapLocation node = current.cameFrom;
-    			while(node != null && !(node.x == start.x && node.y == start.y)){
-    				path.push(node);
+    		if(current.location.x == goal.x && current.location.y == goal.y){
+    			SearchNode node = current;
+    			while(node.cameFrom != null){
+    				path.push(node.cameFrom.location.getMapLocation());
     				node = node.cameFrom;
     			}
     			return path;
     		} else {
     			// Add the current state to the closed list
-    			closedList.add(new MapLocation(current.x, current.y, null, 0));
+    			closedList.add(current.location);
     			// Add the new states to the open list if they do not appear in the closed list
     			// if it is already in the open list set parent pointer to minimum
     			
     			Direction[] directions = Direction.values();
     			
     			for(int i = 0; i < directions.length; i++){
-    				MapLocation location = null;
+    				MapLocationWrapper location = null;
     				switch(directions[i]){
     				case NORTH:
-    					location = new MapLocation(current.x, current.y - 1, current, 0);
+    					location = new MapLocationWrapper(current.location.x, current.location.y - 1);
     					break;
 					case EAST:
-						location = new MapLocation(current.x + 1, current.y, current, 0);
+						location = new MapLocationWrapper(current.location.x + 1, current.location.y);
 						break;
 					case NORTHEAST:
-						location = new MapLocation(current.x + 1, current.y - 1, current, 0);
+						location = new MapLocationWrapper(current.location.x + 1, current.location.y - 1);
 						break;
 					case NORTHWEST:
-						location = new MapLocation(current.x - 1, current.y - 1, current, 0);
+						location = new MapLocationWrapper(current.location.x - 1, current.location.y - 1);
 						break;
 					case SOUTH:
-						location = new MapLocation(current.x, current.y + 1, current, 0);
+						location = new MapLocationWrapper(current.location.x, current.location.y + 1);
 						break;
 					case SOUTHEAST:
-						location = new MapLocation(current.x + 1, current.y + 1, current, 0);
+						location = new MapLocationWrapper(current.location.x + 1, current.location.y + 1);
 						break;
 					case SOUTHWEST:
-						location = new MapLocation(current.x - 1, current.y + 1, current, 0);
+						location = new MapLocationWrapper(current.location.x - 1, current.location.y + 1);
 						break;
 					case WEST:
-						location = new MapLocation(current.x - 1, current.y, current, 0);
+						location = new MapLocationWrapper(current.location.x - 1, current.location.y);
 						break;
     				}
-    				assert(location != null);
-    				location.cost = heuristic(location, goal);
+    				SearchNode next = new SearchNode(location, current, heuristic(location, goal));
 					if(location.y < yExtent && location.x < xExtent && location.y >= 0 && location.x >= 0 && 
 							!closedList.contains(location) && 
-							!resourceLocations.contains(location)){
-						if(!isOpenAndUpdate(location, openList)){
-							openList.add(location);
+							!resources.contains(location)){
+						if(openListSet.contains(location)){
+							Iterator<SearchNode> iter = openList.iterator();
+							boolean done = false;
+							while(!done && iter.hasNext()){
+								SearchNode node = iter.next();
+								if(node.location.x == next.location.x && node.location.y == next.location.y){
+									done = true;
+									if(node.cost > next.cost){
+										openList.remove(node);
+										openList.add(next);
+									}
+								}
+							}
+						} else {
+							openList.add(next);
+							openListSet.add(next.location);
 						}
 					}
     			}
@@ -416,23 +458,14 @@ public class AstarAgent extends Agent {
         return null;
     }
 
-	private boolean isOpenAndUpdate(MapLocation location, PriorityQueue<MapLocation> openList) {
-		Iterator<MapLocation> iterator = openList.iterator();
-		while(iterator.hasNext()){
-			MapLocation e = iterator.next();
-			if(e.x == location.x && e.y == location.y){
-				if(e.cost > location.cost){
-					System.out.println("this happend check the open list");
-					e = null;
-					openList.add(location);
-				}
-				return true;
-			}
+	private boolean isOpenAndUpdate(SearchNode location, PriorityQueue<SearchNode> openList, Set<MapLocationWrapper> openListSet) {
+		if(openListSet.contains(location.location)){
+			
 		}
 		return false;
 	}
 
-	private int heuristic(MapLocation node, MapLocation goal){
+	private int heuristic(MapLocationWrapper node, MapLocation goal){
     	return Math.max(Math.abs(goal.x - node.x), Math.abs(goal.y - node.y));
     }
 
