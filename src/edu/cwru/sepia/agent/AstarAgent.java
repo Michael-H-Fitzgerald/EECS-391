@@ -281,7 +281,7 @@ public class AstarAgent extends Agent {
      */
     private boolean shouldReplanPath(State.StateView state, History.HistoryView history, Stack<MapLocation> currentPath)
     {
-        return false;
+        return true;
     }
 
     /**
@@ -391,6 +391,7 @@ public class AstarAgent extends Agent {
     				path.push(node.cameFrom.location.getMapLocation());
     				node = node.cameFrom;
     			}
+    			path.pop();
     			return path;
     		} else {
     			// Add the current state to the closed list
@@ -431,7 +432,8 @@ public class AstarAgent extends Agent {
     				SearchNode next = new SearchNode(location, current, current.cost + 1 + heuristic(location, goal));
 					if(location.y < yExtent && location.x < xExtent && location.y >= 0 && location.x >= 0 && 
 							!closedList.contains(location) && 
-							!resources.contains(location)){
+							!resources.contains(location) && 
+							(enemyFootmanLoc == null || (location.x != enemyFootmanLoc.x && location.y != enemyFootmanLoc.y))){
 						if(openListSet.contains(location)){
 							Iterator<SearchNode> iter = openList.iterator();
 							boolean done = false;
@@ -457,13 +459,6 @@ public class AstarAgent extends Agent {
     	System.exit(0);
         return null;
     }
-
-	private boolean isOpenAndUpdate(SearchNode location, PriorityQueue<SearchNode> openList, Set<MapLocationWrapper> openListSet) {
-		if(openListSet.contains(location.location)){
-			
-		}
-		return false;
-	}
 
 	private int heuristic(MapLocationWrapper node, MapLocation goal){
     	return Math.max(Math.abs(goal.x - node.x), Math.abs(goal.y - node.y));
