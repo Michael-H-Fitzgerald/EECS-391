@@ -428,7 +428,7 @@ public class AstarAgent extends Agent {
 						location = new MapLocationWrapper(current.location.x - 1, current.location.y);
 						break;
     				}
-    				SearchNode next = new SearchNode(location, current, heuristic(location, goal));
+    				SearchNode next = new SearchNode(location, current, current.cost + 1 + heuristic(location, goal));
 					if(location.y < yExtent && location.x < xExtent && location.y >= 0 && location.x >= 0 && 
 							!closedList.contains(location) && 
 							!resources.contains(location)){
