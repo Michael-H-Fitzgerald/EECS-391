@@ -33,8 +33,18 @@ public class AstarAgent extends Agent {
         }
     }
     
-	class MapLocationWrapper {
-		public int x, y;
+	
+	/**
+	 * A wrapper for the MapLocation class primarily because I wanted to override the
+	 * equals/hash code methods and make the constructor different and didn't want to 
+	 * change the provided code too much. 
+	 * 
+	 * @author Sarah Whelan
+	 *
+	 */
+	public class MapLocationWrapper {
+		public int x;
+		public int y;
 		
 		public MapLocationWrapper(MapLocation loc){
 			this.x = loc.x;
@@ -81,7 +91,13 @@ public class AstarAgent extends Agent {
 		}
 	}
 	
-    class SearchNode {
+	/**
+	 * A map location with associated cost estimate and a way to get the previous location.
+	 * 
+	 * @author Sarah Whelan
+	 *
+	 */
+    public class SearchNode {
         public MapLocationWrapper location;
         public SearchNode cameFrom;
         public float cost;
@@ -281,7 +297,7 @@ public class AstarAgent extends Agent {
      */
     private boolean shouldReplanPath(State.StateView state, History.HistoryView history, Stack<MapLocation> currentPath)
     {
-        return true;
+    	return true;
     }
 
     /**
@@ -365,26 +381,45 @@ public class AstarAgent extends Agent {
      */
     private Stack<MapLocation> AstarSearch(MapLocation start, MapLocation goal, int xExtent, int yExtent, MapLocation enemyFootmanLoc, Set<MapLocation> resourceLocations)
     {   
+    	// The path to return
     	Stack<MapLocation> path = new Stack<MapLocation>();
-    	PriorityQueue<SearchNode> openList = new PriorityQueue<SearchNode>(xExtent * yExtent, (o1, o2) -> {
-    		if(o1.cost > o2.cost){
-    			return 1;
-    		} else if (o1.cost < o2.cost){
-    			return -1;
-    		} else {
-    			return 0;
-    		}
-    	});
+    	// A fast way to get the search node with the lowest estimated cost to the goal
+    	PriorityQueue<SearchNode> openList = 
+    			// This queue will have at most the number of nodes on the map but it will almost always be less
+    			// not actually sure what the lower/upper bounds are but needed to provide a default size in order
+    			// to provide a comparator
+    			new PriorityQueue<SearchNode>(xExtent * yExtent, 
+    					// The comparator only takes cost into account
+    					(o1, o2) -> {
+    						if(o1.cost > o2.cost){
+    							return 1;
+    						} else if (o1.cost < o2.cost){
+    							return -1;
+    						} else {
+    							return 0;
+    						}
+    					});
+    	// A fast way to see if a node is in the open list w/o iterating through the priority queue
     	Set<MapLocationWrapper> openListSet = new HashSet<MapLocationWrapper>();
+    	// A wrapper for the resources to enable calling .contains/.equals
     	Set<MapLocationWrapper> resources = new HashSet<MapLocationWrapper>();
+    	// Fill the wrapper with all of the resource locations
     	resourceLocations.stream().forEach(e -> resources.add(new MapLocationWrapper(e)));
+    	// A fast way to see if a node has already been expanded
     	Set<MapLocationWrapper> closedList = new HashSet<MapLocationWrapper>();
-    	openList.add(new SearchNode(new MapLocationWrapper(start), null, 0));
+    	
+    	// Start by adding the current/starting position to the openList
+    	SearchNode startNode = new SearchNode(new MapLocationWrapper(start), null, 0);
+    	openList.add(startNode);
+    	openListSet.add(startNode.location);
+    	
+    	// As long as there are spaces to search
     	while(!openList.isEmpty()){
     		SearchNode current = openList.remove();
     		if(current.location == null){
     			continue;
     		}
+    		// and we haven't found the goal
     		if(current.location.x == goal.x && current.location.y == goal.y){
     			SearchNode node = current;
     			while(node.cameFrom != null){
@@ -394,13 +429,13 @@ public class AstarAgent extends Agent {
     			path.pop();
     			return path;
     		} else {
-    			// Add the current state to the closed list
+    			// Expand a node from the open list by:
+    			
+    			// adding the current state to the closed list
     			closedList.add(current.location);
-    			// Add the new states to the open list if they do not appear in the closed list
-    			// if it is already in the open list set parent pointer to minimum
     			
+    			// and check all the possible directions from the current node for possible moves
     			Direction[] directions = Direction.values();
-    			
     			for(int i = 0; i < directions.length; i++){
     				MapLocationWrapper location = null;
     				switch(directions[i]){
@@ -430,36 +465,61 @@ public class AstarAgent extends Agent {
 						break;
     				}
     				SearchNode next = new SearchNode(location, current, current.cost + 1 + heuristic(location, goal));
-					if(location.y < yExtent && location.x < xExtent && location.y >= 0 && location.x >= 0 && 
-							!closedList.contains(location) && 
-							!resources.contains(location) && 
-							(enemyFootmanLoc == null || (location.x != enemyFootmanLoc.x && location.y != enemyFootmanLoc.y))){
-						if(openListSet.contains(location)){
-							Iterator<SearchNode> iter = openList.iterator();
-							boolean done = false;
-							while(!done && iter.hasNext()){
-								SearchNode node = iter.next();
-								if(node.location.x == next.location.x && node.location.y == next.location.y){
-									done = true;
-									if(node.cost > next.cost){
-										openList.remove(node);
-										openList.add(next);
+    				
+    				// If the possible next node being considered is within the map bounds
+					if(location.y < yExtent && location.x < xExtent && location.y >= 0 && location.x >= 0 &&
+							// and has not been explored already
+							!closedList.contains(location) &&
+							// and is not a tree or something
+							!resources.contains(location)){
+						
+						// If there isn't an enemy footman
+						if(enemyFootmanLoc == null ||
+								// or if there is and this spot isn't where they are
+								(location.y != enemyFootmanLoc.y || location.x != enemyFootmanLoc.x)
+								){
+						
+							// then see if it has already been seen by a different path
+							if(openListSet.contains(location)){
+								// if it has update the node in the priority queue
+								Iterator<SearchNode> iter = openList.iterator();
+								boolean done = false;
+								while(!done && iter.hasNext()){
+									SearchNode node = iter.next();
+									if(node.location.x == next.location.x && node.location.y == next.location.y){
+										done = true;
+										if(node.cost > next.cost){
+											openList.remove(node);
+											openList.add(next);
+										}
 									}
 								}
+							} else {
+								// otherwise this is the first time seeing the node and it is a valid (empty) space
+								// add it to both the priority queue and open list
+								openList.add(next);
+								openListSet.add(next.location);
 							}
-						} else {
-							openList.add(next);
-							openListSet.add(next.location);
 						}
 					}
     			}
     		}
     	}
+    	
+    	// We looked through all of the reachable states and didn't see the goal
     	System.out.println("No available path.");
     	System.exit(0);
         return null;
     }
 
+    /**
+     * A way to estimate the cost from a given location the goal
+     * 
+     * @param node the node requiring an estimate
+     * @param goal the goal of the map
+     * @return an estimate of how many steps it would take to get from the node to the goal. 
+     * The estimate is both admissible (never overestimates) and consistent (satisfies the triangle inequality). 
+     */
 	private int heuristic(MapLocationWrapper node, MapLocation goal){
     	return Math.max(Math.abs(goal.x - node.x), Math.abs(goal.y - node.y));
     }
