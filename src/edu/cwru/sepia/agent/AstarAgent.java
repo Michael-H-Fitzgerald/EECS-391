@@ -110,6 +110,9 @@ public class AstarAgent extends Agent {
         }
     }
     
+    // The last known position of the enemyFootman
+    private MapLocationWrapper previousEnemyLoc; 
+    
     Stack<MapLocation> path;
     int footmanID, townhallID, enemyFootmanID;
     MapLocation nextLoc;
@@ -296,28 +299,42 @@ public class AstarAgent extends Agent {
      * @return
      */
     private boolean shouldReplanPath(State.StateView state, History.HistoryView history, Stack<MapLocation> currentPath)
-    {
+    {    
     	boolean result = false;
         Unit.UnitView enemyFootmanUnit = state.getUnit(enemyFootmanID);
         if(enemyFootmanUnit == null){
         	return result;
         }
-        MapLocationWrapper footmanLoc = new MapLocationWrapper(new MapLocation(enemyFootmanUnit.getXPosition(), enemyFootmanUnit.getYPosition(), null, 0));
-        int FORETHOUGHT = 2;
+        
+        Unit.UnitView me = state.getUnit(footmanID);
+        MapLocationWrapper meLoc = new MapLocationWrapper(me.getXPosition(), me.getYPosition());
+        MapLocationWrapper footmanLoc = new MapLocationWrapper(enemyFootmanUnit.getXPosition(), enemyFootmanUnit.getYPosition());
+
+        if(previousEnemyLoc != null){
+        	if(!previousEnemyLoc.equals(footmanLoc)){
+        		Unit.UnitView townhall = state.getUnit(townhallID);
+        		MapLocation townhallLoc = new MapLocation(townhall.getXPosition(), townhall.getYPosition(), null, 0);
+        		if(heuristic(meLoc, townhallLoc) > 
+        		heuristic(footmanLoc, townhallLoc)){
+        			result = true;
+        		}
+        	}
+        }
+        previousEnemyLoc = footmanLoc;        
+                		
+        int FORETHOUGHT = 4;
         Stack<MapLocation> otherStack = new Stack<MapLocation>();
         for(int i = 0; i < FORETHOUGHT; i++){
         	if(!currentPath.isEmpty()){
 	        	MapLocation pathNode = currentPath.pop();
 	        	otherStack.push(pathNode);
-	        	if(pathNode.x == footmanLoc.x && pathNode.y == footmanLoc.y){        		
+	        	if(pathNode.equals(footmanLoc)){        		
 	        		result = true;
 	        	}
         	}
         }
-        for(int i = 0; i < FORETHOUGHT; i++){
-        	if(!otherStack.isEmpty()){
-        		currentPath.push(otherStack.pop());
-        	}
+        while(!otherStack.isEmpty()){
+        	currentPath.push(otherStack.pop());
         }
         
     	return result;
