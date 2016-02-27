@@ -89,10 +89,10 @@ public class MinimaxAlphaBeta extends Agent {
     	double value = Double.NEGATIVE_INFINITY;
     	for(Action action : node.action.values()){
     		value = Math.max(value, minValue(result(node.state, action), depth - 1, alpha, beta));
-    		if(value <= alpha){
+    		if(value >= beta){
     			return value;
     		}
-    		beta = Math.min(beta, value);
+    		alpha = Math.max(alpha, value);
     	}
     	return value;
     }
@@ -138,6 +138,7 @@ public class MinimaxAlphaBeta extends Agent {
      */
     public List<GameStateChild> orderChildrenWithHeuristics(List<GameStateChild> children)
     {
+    	// TODO
         return children;
     }
 }

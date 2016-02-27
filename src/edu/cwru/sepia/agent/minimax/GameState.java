@@ -1,14 +1,8 @@
 package edu.cwru.sepia.agent.minimax;
 
-import edu.cwru.sepia.action.Action;
-import edu.cwru.sepia.action.ActionType;
-import edu.cwru.sepia.action.DirectedAction;
-import edu.cwru.sepia.action.TargetedAction;
-import edu.cwru.sepia.environment.model.state.State;
-import edu.cwru.sepia.environment.model.state.Unit;
-import edu.cwru.sepia.util.Direction;
+import java.util.List;
 
-import java.util.*;
+import edu.cwru.sepia.environment.model.state.State;
 
 /**
  * This class stores all of the information the agent
@@ -42,6 +36,7 @@ public class GameState {
      * @param state Current state of the episode
      */
     public GameState(State.StateView state) {
+    	// TODO
     }
 
     /**
@@ -63,6 +58,7 @@ public class GameState {
      * @return The weighted linear combination of the features
      */
     public double getUtility() {
+    	// TODO
         return 0.0;
     }
 
@@ -83,6 +79,7 @@ public class GameState {
      * @return All possible actions and their associated resulting game state
      */
     public List<GameStateChild> getChildren() {
+    	// TODO
         return null;
     }
 }
