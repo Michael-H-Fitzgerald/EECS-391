@@ -11,8 +11,8 @@ import edu.cwru.sepia.environment.model.history.History;
 import edu.cwru.sepia.environment.model.state.State;
 
 public class MinimaxAlphaBeta extends Agent {
-
-    private final int numPlys;
+	private static final long serialVersionUID = 1L;
+	private final int numPlys;
 
     public MinimaxAlphaBeta(int playernum, String[] args)
     {
@@ -74,12 +74,16 @@ public class MinimaxAlphaBeta extends Agent {
      */
     public GameStateChild alphaBetaSearch(GameStateChild node, int depth, double alpha, double beta){
         double value = maxValue(node, depth, alpha, beta);
-        return getActionWithValue(node.action, value);
+        return getStateWithValue(node, value);
     }
     
-    private GameStateChild getActionWithValue(Map<Integer, Action> action, double value) {
-		// TODO Auto-generated method stub
-		return null;
+    private GameStateChild getStateWithValue(GameStateChild node, double value) {    
+    	for(GameStateChild child : node.state.getChildren()){
+    		if(child.state.getUtility() == value){
+    			return child;
+    		}
+    	}
+    	return null;
 	}
 
 	private double maxValue(GameStateChild node, int depth, double alpha, double beta){
@@ -87,8 +91,8 @@ public class MinimaxAlphaBeta extends Agent {
     		return node.state.getUtility();
     	}
     	double value = Double.NEGATIVE_INFINITY;
-    	for(Action action : node.action.values()){
-    		value = Math.max(value, minValue(result(node.state, action), depth - 1, alpha, beta));
+		for(GameStateChild child : orderChildrenWithHeuristics(node.state.getChildren())){
+    		value = Math.max(value, minValue(child, depth - 1, alpha, beta));
     		if(value >= beta){
     			return value;
     		}
@@ -102,8 +106,8 @@ public class MinimaxAlphaBeta extends Agent {
 			return node.state.getUtility();
 		}
 		double value = Double.POSITIVE_INFINITY; 
-		for(Action action : node.action.values()){
-			value = Math.min(value, maxValue(result(node.state, action), depth - 1, alpha, beta));
+		for(GameStateChild child : orderChildrenWithHeuristics(node.state.getChildren())){
+			value = Math.min(value, maxValue(child, depth - 1, alpha, beta));
 			if(value <= alpha){
 				return value;
 			}
@@ -113,13 +117,7 @@ public class MinimaxAlphaBeta extends Agent {
 	}
 
 	private boolean cutOffTest(GameStateChild node, int depth) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	
-    private GameStateChild result(GameState state, Action action) {
-		// TODO Auto-generated method stub
-		return null;
+		return depth >= numPlys || node.state.getUtility() == Double.POSITIVE_INFINITY;
 	}
 
 
@@ -136,9 +134,16 @@ public class MinimaxAlphaBeta extends Agent {
      * @param children
      * @return The list of children sorted by your heuristic.
      */
-    public List<GameStateChild> orderChildrenWithHeuristics(List<GameStateChild> children)
-    {
-    	// TODO
+    public List<GameStateChild> orderChildrenWithHeuristics(List<GameStateChild> children){
+        children.sort((o1, o2) -> {
+        	if(o1.state.getUtility() > o2.state.getUtility()){
+        		return 1;
+        	} else if (o1.state.getUtility() < o2.state.getUtility()){
+        		return -1;
+        	} else {
+        		return 0;
+        	}
+        });
         return children;
     }
 }
