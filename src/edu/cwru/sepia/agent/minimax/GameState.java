@@ -1,85 +1,182 @@
 package edu.cwru.sepia.agent.minimax;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import edu.cwru.sepia.action.Action;
 import edu.cwru.sepia.environment.model.state.State;
+import edu.cwru.sepia.util.Direction;
 
-/**
- * This class stores all of the information the agent
- * needs to know about the state of the game. For example this
- * might include things like footmen HP and positions.
- *
- * Add any information or methods you would like to this class,
- * but do not delete or change the signatures of the provided methods.
- */
 public class GameState {
+	private Board board;
+	private int width;
+	private int height;
+	
+	private class Board {
+		private Square[][] board;
+		private Map<Integer, Agent> guys = new HashMap<Integer, Agent>();
+		private Map<Integer, Resource> resources = new HashMap<Integer, Resource>();
+		
+		public Board(int x, int y){
+			board = new Square[x][y];
+		}
+		
+		public void addResource(int id, int x, int y){
+			Resource resource = new Resource(id, x, y);
+			board[x][y] = resource;
+			resources.put(resource.id, resource);
+		}
+		
+		public void addAgent(int id, int x, int y, boolean good, int hp, int attackDamage, int attackRange){
+			Agent agent = new Agent(id, x, y, good, hp, attackDamage, attackRange);
+			board[x][y] = agent;
+			guys.put(id, agent);
+		}
+		
+		public void moveAgentBy(int id, int xOffset, int yOffset){
+			moveAgentBy(id, xOffset, yOffset, guys);
+		}
+		
+		private void moveAgentBy(int id, int xOffset, int yOffset, Map<Integer, Agent> agents){
+			Agent agent = agents.get(id);
+			int currentX = agent.x;
+			int currentY = agent.y;
+			int nextX = currentX + xOffset;
+			int nextY = currentY + yOffset;
+			board[currentX][currentY] = null;
+			agent.x = nextX;
+			agent.y = nextY;
+			board[nextX][nextY] = agent;
+		}
+		
+		public boolean isEmpty(int x, int y){
+			return board[x][y] == null;
+		}
+		
+	}
 
-    /**
-     * You will implement this constructor. It will
-     * extract all of the needed state information from the built in
-     * SEPIA state view.
-     *
-     * You may find the following state methods useful:
-     *
-     * state.getXExtent() and state.getYExtent(): get the map dimensions
-     * state.getAllResourceIDs(): returns all of the obstacles in the map
-     * state.getResourceNode(Integer resourceID): Return a ResourceView for the given ID
-     *
-     * For a given ResourceView you can query the position using
-     * resource.getXPosition() and resource.getYPosition()
-     *
-     * For a given unit you will need to find the attack damage, range and max HP
-     * unitView.getTemplateView().getRange(): This gives you the attack range
-     * unitView.getTemplateView().getBasicAttack(): The amount of damage this unit deals
-     * unitView.getTemplateView().getBaseHealth(): The maximum amount of health of this unit
-     *
-     * @param state Current state of the episode
-     */
+	private abstract class Square {
+		public int id;
+		public int x;
+		public int y;
+		
+		public Square(int id, int x, int y){
+			this.id = id;
+		}
+	}
+	
+	private class Agent extends Square {
+		public boolean good;
+		public int hp;
+		public int attackDamage;
+		public int attackRange;
+		public Agent(int id, int x, int y, boolean good, int hp, int attackDamage, int attackRange) {
+			super(id, x, y);
+			this.good = good;
+			this.hp = hp;
+			this.attackDamage = attackDamage;
+			this.attackRange = attackRange;
+		}
+	}
+	
+	private class Resource extends Square {
+		public Resource(int id, int x, int y) {
+			super(id, x, y);
+		}		
+	}
+
     public GameState(State.StateView state) {
-    	// TODO
-    }
+    	this.width = state.getXExtent();
+    	this.height = state.getYExtent();
+    	this.board = new Board(width, height);
+    	state.getAllUnits().stream().forEach( (e) -> {
+    		if(e.getID() == 1 || e.getID() == 0){
+    			this.board.addAgent(e.getID(), e.getXPosition(), e.getYPosition(), true, e.getHP(), e.getTemplateView().getRange(), e.getTemplateView().getBasicAttack());
+    		} else {
+    			this.board.addAgent(e.getID(), e.getXPosition(), e.getYPosition(), false, e.getHP(), e.getTemplateView().getRange(), e.getTemplateView().getBasicAttack());
+    		}
+    	});
+    	
+    	state.getAllResourceNodes().stream().forEach( (e) -> {
+    		this.board.addResource(e.getID(), e.getXPosition(), e.getYPosition());
+    	});
+    }   
 
-    /**
-     * You will implement this function.
-     *
-     * You should use weighted linear combination of features.
-     * The features may be primitives from the state (such as hp of a unit)
-     * or they may be higher level summaries of information from the state such
-     * as distance to a specific location. Come up with whatever features you think
-     * are useful and weight them appropriately.
-     *
-     * It is recommended that you start simple until you have your algorithm working. Then watch
-     * your agent play and try to add features that correct mistakes it makes. However, remember that
-     * your features should be as fast as possible to compute. If the features are slow then you will be
-     * able to do less plys in a turn.
-     *
-     * Add a good comment about what is in your utility and why you chose those features.
-     *
-     * @return The weighted linear combination of the features
-     */
+    public GameState(GameState gameState) {
+    	this.width = gameState.width;
+    	this.height = gameState.height;
+    	this.board = new Board(width, height);
+    	gameState.board.guys.values().stream().forEach( (e) -> {
+    		if(e.id == 1 || e.id == 0){
+    			this.board.addAgent(e.id, e.x, e.y, true, e.hp, e.attackRange, e.attackDamage);
+    		} else {
+    			this.board.addAgent(e.id, e.x, e.y, false, e.hp, e.attackRange, e.attackDamage);
+    		}
+    	});
+    	
+    	gameState.board.resources.values().stream().forEach( (e) -> {
+    		this.board.addResource(e.id, e.x, e.y);
+    	});
+
+	}
+    
     public double getUtility() {
-    	// TODO
-        return 0.0;
+    	return -1 * this.board.guys.size();
     }
 
-    /**
-     * You will implement this function.
-     *
-     * This will return a list of GameStateChild objects. You will generate all of the possible
-     * actions in a step and then determine the resulting game state from that action. These are your GameStateChildren.
-     *
-     * You may find it useful to iterate over all the different directions in SEPIA.
-     *
-     * for(Direction direction : Directions.values())
-     *
-     * To get the resulting position from a move in that direction you can do the following
-     * x += direction.xComponent()
-     * y += direction.yComponent()
-     *
-     * @return All possible actions and their associated resulting game state
-     */
     public List<GameStateChild> getChildren() {
-    	// TODO
-        return null;
+    	List<GameStateChild> children = new ArrayList<GameStateChild>(25);
+    	for(Agent unit : board.guys.values()){
+    		if(unit.hp > 0){
+	    		for(Direction direction : Direction.values()){
+	    			int nextX = unit.x + direction.xComponent();
+	    			int nextY = unit.y + direction.yComponent();
+	    			if(nextX < width && nextX > -1 && nextY < height && nextY > -1){
+	    				if(this.board.isEmpty(nextX, nextY)){
+		    				Map<Integer, Action> map = new HashMap<Integer, Action>();
+		    				Action action = Action.createPrimitiveMove(unit.id, direction);
+		    				map.put(unit.id, action);
+		    				GameState nextState = new GameState(this);
+		    				nextState.board.moveAgentBy(unit.id, direction.xComponent(), direction.yComponent());
+			    			switch(direction){
+			    			case NORTH :
+			    			case EAST :
+			    			case SOUTH :
+			    			case WEST :
+			    				children.add(new GameStateChild(map, nextState));
+			    				break;
+			    			default :
+			    				break;
+			    			}
+	    				}
+	    			}
+	    		}
+	    		List<Integer> attackable = idsCanAttack(unit);
+	    		if(!attackable.isEmpty()){
+	    			for(Integer id : attackable){
+	    				Map<Integer, Action> map = new HashMap<Integer, Action>();
+	    				Action action = Action.createPrimitiveAttack(unit.id, id);
+	    				map.put(unit.id, action);
+	    				GameState nextState = new GameState(this);
+	    				Agent other = this.board.guys.get(id);
+	    				other.hp = other.hp - unit.attackDamage;
+	    				children.add(new GameStateChild(map, nextState));
+	    			}
+	    		}
+    		}
+    	}
+    	return children;
     }
+
+	private List<Integer> idsCanAttack(Agent unit) {
+		List<Integer> attackable = new ArrayList<Integer>();
+		for(Agent agent : this.board.guys.values()){
+			if(agent.id != unit.id && (Math.abs(unit.x - agent.x) + Math.abs(unit.y - agent.y)) < unit.attackRange){
+				attackable.add(agent.id);
+			}
+		}
+		return attackable;
+	}
 }
