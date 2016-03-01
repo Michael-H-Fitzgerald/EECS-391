@@ -6,39 +6,51 @@ import java.util.List;
 import java.util.Map;
 
 import edu.cwru.sepia.action.Action;
+import edu.cwru.sepia.action.DirectedAction;
+import edu.cwru.sepia.action.TargetedAction;
 import edu.cwru.sepia.environment.model.state.State;
 import edu.cwru.sepia.util.Direction;
 
 public class GameState {
 	private Board board;
-	private int width;
-	private int height;
-	
+	private boolean ourTurn;
+
 	private class Board {
 		private Square[][] board;
+		private int originalNumGood;
+		private int originalNumBad;
 		private Map<Integer, Agent> guys = new HashMap<Integer, Agent>();
 		private Map<Integer, Resource> resources = new HashMap<Integer, Resource>();
-		
+		private int width;
+		private int height;
+
 		public Board(int x, int y){
 			board = new Square[x][y];
+			this.width = x;
+			this.height = y;
 		}
-		
+
 		public void addResource(int id, int x, int y){
 			Resource resource = new Resource(id, x, y);
 			board[x][y] = resource;
 			resources.put(resource.id, resource);
 		}
-		
-		public void addAgent(int id, int x, int y, boolean good, int hp, int attackDamage, int attackRange){
-			Agent agent = new Agent(id, x, y, good, hp, attackDamage, attackRange);
+
+		public void addAgent(int id, int x, int y, int hp, int possibleHp, int attackDamage, int attackRange){
+			Agent agent = new Agent(id, x, y, hp, possibleHp, attackDamage, attackRange);
 			board[x][y] = agent;
 			guys.put(id, agent);
+			if(agent.isGood()){
+				originalNumGood++;
+			} else {
+				originalNumBad++;
+			}
 		}
-		
+
 		public void moveAgentBy(int id, int xOffset, int yOffset){
 			moveAgentBy(id, xOffset, yOffset, guys);
 		}
-		
+
 		private void moveAgentBy(int id, int xOffset, int yOffset, Map<Integer, Agent> agents){
 			Agent agent = agents.get(id);
 			int currentX = agent.x;
@@ -50,121 +62,197 @@ public class GameState {
 			agent.y = nextY;
 			board[nextX][nextY] = agent;
 		}
-		
+
 		public boolean isEmpty(int x, int y){
 			return board[x][y] == null;
 		}
-		
+
+		public boolean isOnBoard(int x, int y){
+			return x >= 0 && x < width && y >= 0 && y < height; 
+		}
 	}
 
 	private abstract class Square {
 		public int id;
 		public int x;
 		public int y;
-		
+
 		public Square(int id, int x, int y){
 			this.id = id;
+			this.x = x;
+			this.y = y;
 		}
 	}
-	
+
 	private class Agent extends Square {
-		public boolean good;
 		public int hp;
+		public int possibleHp;
 		public int attackDamage;
 		public int attackRange;
-		public Agent(int id, int x, int y, boolean good, int hp, int attackDamage, int attackRange) {
+		public Agent(int id, int x, int y, int hp, int possibleHp, int attackDamage, int attackRange) {
 			super(id, x, y);
-			this.good = good;
 			this.hp = hp;
+			this.possibleHp = possibleHp;
 			this.attackDamage = attackDamage;
 			this.attackRange = attackRange;
 		}
+
+		public boolean isGood(){
+			return id == 0 || id == 1;
+		}
+
+		public boolean isAlive() {
+			return hp > 0;
+		}
 	}
-	
+
 	private class Resource extends Square {
 		public Resource(int id, int x, int y) {
 			super(id, x, y);
 		}		
 	}
 
-    public GameState(State.StateView state) {
-    	this.width = state.getXExtent();
-    	this.height = state.getYExtent();
-    	this.board = new Board(width, height);
-    	state.getAllUnits().stream().forEach( (e) -> {
-    		if(e.getID() == 1 || e.getID() == 0){
-    			this.board.addAgent(e.getID(), e.getXPosition(), e.getYPosition(), true, e.getHP(), e.getTemplateView().getRange(), e.getTemplateView().getBasicAttack());
-    		} else {
-    			this.board.addAgent(e.getID(), e.getXPosition(), e.getYPosition(), false, e.getHP(), e.getTemplateView().getRange(), e.getTemplateView().getBasicAttack());
-    		}
-    	});
-    	
-    	state.getAllResourceNodes().stream().forEach( (e) -> {
-    		this.board.addResource(e.getID(), e.getXPosition(), e.getYPosition());
-    	});
-    }   
+	public GameState(State.StateView state) {
+		this.board = new Board(state.getXExtent(), state.getYExtent());
+		state.getAllUnits().stream().forEach( (e) -> {
+			this.board.addAgent(e.getID(), e.getXPosition(), e.getYPosition(), e.getHP(), e.getHP(), e.getTemplateView().getBasicAttack(), e.getTemplateView().getRange());
+		});
 
-    public GameState(GameState gameState) {
-    	this.width = gameState.width;
-    	this.height = gameState.height;
-    	this.board = gameState.board;
+		state.getAllResourceNodes().stream().forEach( (e) -> {
+			this.board.addResource(e.getID(), e.getXPosition(), e.getYPosition());
+		});
+		this.ourTurn = true;
+	}   
+
+	public GameState(GameState gameState) {
+		this.board = new Board(gameState.board.width, gameState.board.height);
+		gameState.board.guys.values().stream().forEach( (e) -> {
+			this.board.addAgent(e.id, e.x, e.y, e.hp, e.possibleHp, e.attackDamage, e.attackRange);			
+		});
+
+		gameState.board.resources.values().stream().forEach( (e) -> {		
+			this.board.addResource(e.id, e.x, e.y);		
+		});
+		this.ourTurn = !gameState.ourTurn;
 	}
-    
-    public double getUtility() {
-    	return -1 * this.board.guys.size();
-    }
 
-    public List<GameStateChild> getChildren() {
-    	List<GameStateChild> children = new ArrayList<GameStateChild>(25);
-    	for(Agent unit : board.guys.values()){
-    		if(unit.hp > 0){
-	    		for(Direction direction : Direction.values()){
-	    			int nextX = unit.x + direction.xComponent();
-	    			int nextY = unit.y + direction.yComponent();
-	    			if(nextX < width && nextX > -1 && nextY < height && nextY > -1){
-	    				if(this.board.isEmpty(nextX, nextY)){
-		    				Map<Integer, Action> map = new HashMap<Integer, Action>();
-		    				Action action = Action.createPrimitiveMove(unit.id, direction);
-		    				map.put(unit.id, action);
-		    				GameState nextState = new GameState(this);
-		    				nextState.board.moveAgentBy(unit.id, direction.xComponent(), direction.yComponent());
-			    			switch(direction){
-			    			case NORTH :
-			    			case EAST :
-			    			case SOUTH :
-			    			case WEST :
-			    				children.add(new GameStateChild(map, nextState));
-			    				break;
-			    			default :
-			    				break;
-			    			}
-	    				}
-	    			}
-	    		}
-	    		List<Integer> attackable = idsCanAttack(unit);
-	    		if(!attackable.isEmpty()){
-	    			for(Integer id : attackable){
-	    				Map<Integer, Action> map = new HashMap<Integer, Action>();
-	    				Action action = Action.createPrimitiveAttack(unit.id, id);
-	    				map.put(unit.id, action);
-	    				GameState nextState = new GameState(this);
-	    				Agent other = this.board.guys.get(id);
-	    				other.hp = other.hp - unit.attackDamage;
-	    				children.add(new GameStateChild(map, nextState));
-	    			}
-	    		}
-    		}
-    	}
-    	return children;
-    }
+	public double getUtility() {
+		double score = 0.0;
 
-	private List<Integer> idsCanAttack(Agent unit) {
-		List<Integer> attackable = new ArrayList<Integer>();
+		int numGood = 0;
+		int numBad = 0;
+
 		for(Agent agent : this.board.guys.values()){
-			if(agent.id != unit.id && (Math.abs(unit.x - agent.x) + Math.abs(unit.y - agent.y)) < unit.attackRange){
-				attackable.add(agent.id);
+			if(agent.isGood()){
+				score = score + (agent.hp / agent.possibleHp);
+				score = score + (findAttackableAgents(agent).size() * 20);
+				numGood++;
+			} else {
+				score = score - (agent.hp / agent.possibleHp);
+				score = score - (findAttackableAgents(agent).size() * 5);
+				numBad++;
+			}
+		}
+
+		if(numGood == 0){
+			return Double.NEGATIVE_INFINITY;
+		}
+
+		if(numGood > 0 && numBad == 0){
+			return Double.POSITIVE_INFINITY;
+		}
+
+		return score;
+	}
+
+	public List<GameStateChild> getChildren() {
+		List<List<Action>> allActions = new ArrayList<List<Action>>();
+		for(Agent agent : board.guys.values()){
+			if(agent.isAlive() && ((ourTurn && agent.isGood()) || (!ourTurn && !agent.isGood()))){
+				allActions.add(getActionsForAgent(agent));
+			}
+		}
+		List<Map<Integer, Action>> actionMaps = enumerateActionOptions(allActions);
+		return enumerateChildrenFromActionMaps(actionMaps);
+	}
+
+	private List<Action> getActionsForAgent(Agent agent){
+		List<Action> actions = new ArrayList<Action>();
+		for(Direction direction : Direction.values()){
+			switch(direction){
+			case NORTH :
+			case EAST :
+			case SOUTH :
+			case WEST :
+				int nextX = agent.x + direction.xComponent();
+				int nextY = agent.y + direction.yComponent();
+				if(this.board.isOnBoard(nextX, nextY) && this.board.isEmpty(nextX, nextY)){
+					actions.add(Action.createPrimitiveMove(agent.id, direction));
+				}
+				break;
+			default :
+				break;
+			}
+		}
+		for(Integer id : findAttackableAgents(agent)){
+			actions.add(Action.createPrimitiveAttack(agent.id, id));
+		}
+		return actions;
+	}
+
+	private List<Integer> findAttackableAgents(Agent agent) {
+		List<Integer> attackable = new ArrayList<Integer>();
+		for(Agent otherAgent : this.board.guys.values()){
+			if(otherAgent.id != agent.id && (otherAgent.isGood() != agent.isGood()) && 
+					(Math.abs(agent.x - otherAgent.x) + Math.abs(agent.y - otherAgent.y)) < agent.attackRange){
+				attackable.add(otherAgent.id);
 			}
 		}
 		return attackable;
 	}
+
+	private List<Map<Integer, Action>> enumerateActionOptions(List<List<Action>> allActions){
+		List<Map<Integer, Action>> actionMaps = new ArrayList<Map<Integer, Action>>();
+		List<Action> actionsForAgent1 = allActions.get(0);	
+		for(Action actionForAgent : actionsForAgent1){
+			if(allActions.size() == 1){
+				Map<Integer, Action> actionMap = new HashMap<Integer, Action>();
+				actionMap.put(actionForAgent.getUnitId(), actionForAgent);
+				actionMaps.add(actionMap);
+			} else {
+				for(Action actionForOtherAgent : allActions.get(1)){
+					Map<Integer, Action> actionMap = new HashMap<Integer, Action>();
+					actionMap.put(actionForAgent.getUnitId(), actionForAgent);
+					actionMap.put(actionForOtherAgent.getUnitId(), actionForOtherAgent);
+					actionMaps.add(actionMap);
+				}
+			}
+		}
+		return actionMaps;
+	}
+
+	private List<GameStateChild> enumerateChildrenFromActionMaps(List<Map<Integer, Action>> actionMaps){
+		List<GameStateChild> children = new ArrayList<GameStateChild>(25);
+		for(Map<Integer, Action> actionMap : actionMaps){
+			GameState child = new GameState(this);
+			for(Action action : actionMap.values()){
+				child.applyAction(action);
+			}
+			children.add(new GameStateChild(actionMap, child));
+		}
+		return children;
+	}
+
+	private void applyAction(Action action) {
+		if(action.getType().name().equals(Action.createPrimitiveMove(0, null).getType().name())){
+			DirectedAction directedAction = (DirectedAction) action;
+			this.board.moveAgentBy(directedAction.getUnitId(), directedAction.getDirection().xComponent(), directedAction.getDirection().yComponent());
+		} else {
+			TargetedAction targetedAction = (TargetedAction) action;
+			Agent attacker = this.board.guys.get(targetedAction.getUnitId());
+			Agent other = this.board.guys.get(targetedAction.getTargetId());
+			other.hp = other.hp - attacker.attackDamage;
+		}
+	}
+
 }
