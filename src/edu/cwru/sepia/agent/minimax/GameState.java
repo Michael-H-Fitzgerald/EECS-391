@@ -107,19 +107,7 @@ public class GameState {
     public GameState(GameState gameState) {
     	this.width = gameState.width;
     	this.height = gameState.height;
-    	this.board = new Board(width, height);
-    	gameState.board.guys.values().stream().forEach( (e) -> {
-    		if(e.id == 1 || e.id == 0){
-    			this.board.addAgent(e.id, e.x, e.y, true, e.hp, e.attackRange, e.attackDamage);
-    		} else {
-    			this.board.addAgent(e.id, e.x, e.y, false, e.hp, e.attackRange, e.attackDamage);
-    		}
-    	});
-    	
-    	gameState.board.resources.values().stream().forEach( (e) -> {
-    		this.board.addResource(e.id, e.x, e.y);
-    	});
-
+    	this.board = gameState.board;
 	}
     
     public double getUtility() {
