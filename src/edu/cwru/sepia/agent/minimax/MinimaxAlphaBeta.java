@@ -2,6 +2,7 @@ package edu.cwru.sepia.agent.minimax;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -144,6 +145,28 @@ public class MinimaxAlphaBeta extends Agent {
         		return 0;
         	}
         });
-        return children;
+        
+        List<GameStateChild> ordered = new LinkedList<GameStateChild>();
+        for(GameStateChild child : children){
+        	int count = 0;
+        	for(Action action : child.action.values()){
+        		if(action.getType().name().equals(Action.createPrimitiveAttack(0, 0).getType().name())){
+        			count++;
+        		}
+        	}
+        	if(count == child.action.size()){
+        		ordered.add(0, child);
+        	} else if (count > 0){
+        		if(ordered.isEmpty()){
+        			ordered.add(0, child);
+        		} else {
+        			ordered.add(1, child);
+        		}
+        	} else {
+        		ordered.add(child);
+        	}
+        }
+        //ordered.addAll(children);
+        return ordered;
     }
 }

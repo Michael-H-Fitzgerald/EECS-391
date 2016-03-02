@@ -81,7 +81,18 @@ public class GameState {
 		}
 		
 		public double attackDistance(Agent agent1, Agent agent2){
-			return Math.hypot(Math.abs(agent1.x - agent2.x), Math.abs(agent1.y - agent2.y));
+			return Math.floor(Math.hypot(Math.abs(agent1.x - agent2.x), Math.abs(agent1.y - agent2.y)));
+		}
+		
+		private List<Integer> findAttackableAgents(Agent agent) {
+			List<Integer> attackable = new ArrayList<Integer>();
+			for(Agent otherAgent : guys.values()){
+				if(otherAgent.id != agent.id && (otherAgent.isGood() != agent.isGood()) && 
+						attackDistance(agent, otherAgent) <= agent.attackRange){
+					attackable.add(otherAgent.id);
+				}
+			}
+			return attackable;
 		}
 	}
 
@@ -155,13 +166,37 @@ public class GameState {
 		}
 		double score = 0.0;
 
-		score += haveGoodGuysUtility();
-		score += haveBadGuysUtility();
-		score += distanceFromEnemeyUtility() * 100;
-		score += damageToEnemyUtility() * 1000; 
+		double goodGuys = haveGoodGuysUtility();
+		if(goodGuys == Double.NEGATIVE_INFINITY){
+			this.utility = goodGuys;
+			return this.utility;
+		} else {
+			score += goodGuys;
+		}
+		
+		double badGuys = haveBadGuysUtility();
+		if(goodGuys == Double.POSITIVE_INFINITY){
+			this.utility = badGuys;
+			return this.utility;
+		} else {
+			score += badGuys;
+		}
+		score += distanceFromEnemeyUtility();
+		score += damageToEnemyUtility();
+		score += canAttackUtility();
 				
 		this.utility = score;
 		return this.utility;
+	}
+
+	private double canAttackUtility() {
+		double utility = 0.0;
+		for(Agent agent : this.board.guys.values()){
+			if(agent.isGood() && agent.isAlive()){
+				utility += this.board.findAttackableAgents(agent).size();
+			}
+		}
+		return utility;
 	}
 
 	private double damageToEnemyUtility() {
@@ -208,13 +243,15 @@ public class GameState {
 		double utility = 0.0;
 		for(Agent agent : this.board.guys.values()){
 			if(agent.isGood() && agent.isAlive()){
-			double value = Double.POSITIVE_INFINITY;
+				double value = Double.POSITIVE_INFINITY;
 				for(Agent otherAgent : this.board.guys.values()){
 					if(!otherAgent.isGood() && otherAgent.isAlive()){
 						value = Math.min(this.board.distance(agent, otherAgent), value);
 					}
 				}
-			utility += value;
+				if(value != Double.POSITIVE_INFINITY){
+					utility += value;
+				}
 			}
 		}
 		return utility * -1;
@@ -249,21 +286,10 @@ public class GameState {
 				break;
 			}
 		}
-		for(Integer id : findAttackableAgents(agent)){
+		for(Integer id : this.board.findAttackableAgents(agent)){
 			actions.add(Action.createPrimitiveAttack(agent.id, id));
 		}
 		return actions;
-	}
-
-	private List<Integer> findAttackableAgents(Agent agent) {
-		List<Integer> attackable = new ArrayList<Integer>();
-		for(Agent otherAgent : this.board.guys.values()){
-			if(otherAgent.id != agent.id && (otherAgent.isGood() != agent.isGood()) && 
-					this.board.attackDistance(agent, otherAgent) <= agent.attackRange){
-				attackable.add(otherAgent.id);
-			}
-		}
-		return attackable;
 	}
 
 	private List<Map<Integer, Action>> enumerateActionOptions(List<List<Action>> allActions){
@@ -306,7 +332,7 @@ public class GameState {
 			TargetedAction targetedAction = (TargetedAction) action;
 			Agent attacker = this.board.guys.get(targetedAction.getUnitId());
 			Agent other = this.board.guys.get(targetedAction.getTargetId());
-			other.hp = other.hp - attacker.attackDamage;
+			other.hp -= attacker.attackDamage;
 		}
 	}
 
