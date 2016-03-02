@@ -2,6 +2,7 @@ package edu.cwru.sepia.agent.minimax;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -133,51 +134,27 @@ public class MinimaxAlphaBeta extends Agent {
 		return depth == 0 || node.state.getUtility() == GameState.MAX_UTILITY || node.state.getUtility() == GameState.MIN_UTILITY;
 	}
 
-
-	/**
-     * You will implement this.
-     *
-     * Given a list of children you will order them according to heuristics you make up.
-     * See the assignment description for suggestions on heuristics to use when sorting.
-     *
-     * Use this function inside of your alphaBetaSearch method.
-     *
-     * Include a good comment about what your heuristics are and why you chose them.
-     *
-     * @param children
-     * @return The list of children sorted by your heuristic.
-     */
     public List<GameStateChild> orderChildrenWithHeuristics(List<GameStateChild> children){ 
-        children.sort((o1, o2) -> {
-        	if(o1.state.getUtility() > o2.state.getUtility()){
-        		return -1;
-        	} else if (o1.state.getUtility() < o2.state.getUtility()){
-        		return 1;
-        	} else {
-        		return 0;
+        List<GameStateChild> ordered = new LinkedList<GameStateChild>();
+        for(GameStateChild child : children){
+        	int count = 0;
+        	for(Action action : child.action.values()){
+        		if(action.getType().name().equals(GameState.ACTION_ATTACK_NAME)){
+        			count++;
+        		}
         	}
-        });
-        return children;
-//        List<GameStateChild> ordered = new LinkedList<GameStateChild>();
-//        for(GameStateChild child : children){
-//        	int count = 0;
-//        	for(Action action : child.action.values()){
-//        		if(action.getType().name().equals(Action.createPrimitiveAttack(0, 0).getType().name())){
-//        			count++;
-//        		}
-//        	}
-//        	if(count == child.action.size()){
-//        		ordered.add(0, child);
-//        	} else if (count > 0){
-//        		if(ordered.isEmpty()){
-//        			ordered.add(0, child);
-//        		} else {
-//        			ordered.add(1, child);
-//        		}
-//        	} else {
-//        		ordered.add(child);
-//        	}
-//        }
-//        return ordered;
+        	if(count == child.action.size()){
+        		ordered.add(0, child);
+        	} else if (count > 0){
+        		if(ordered.isEmpty()){
+        			ordered.add(0, child);
+        		} else {
+        			ordered.add(1, child);
+        		}
+        	} else {
+        		ordered.add(child);
+        	}
+        }
+        return ordered;
     }
 }
