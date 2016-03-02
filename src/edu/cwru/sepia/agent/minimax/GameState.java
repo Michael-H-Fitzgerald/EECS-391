@@ -1,6 +1,7 @@
 package edu.cwru.sepia.agent.minimax;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,9 @@ import edu.cwru.sepia.environment.model.state.State;
 import edu.cwru.sepia.util.Direction;
 
 public class GameState {
+	public static final double MAX_UTILITY = Double.POSITIVE_INFINITY;
+	public static final double MIN_UTILITY = Double.NEGATIVE_INFINITY;
+	
 	private Board board;
 	private boolean ourTurn;
 	private double utility = 0.0;
@@ -19,7 +23,9 @@ public class GameState {
 	private class Board {
 		private Square[][] board;
 		private int originalNumGood;
+		private int currentNumGood;
 		private int originalNumBad;
+		private int currentNumBad;
 		private Map<Integer, Agent> guys = new HashMap<Integer, Agent>();
 		private Map<Integer, Resource> resources = new HashMap<Integer, Resource>();
 		private int width;
@@ -63,6 +69,18 @@ public class GameState {
 			agent.y = nextY;
 			board[nextX][nextY] = agent;
 		}
+		
+		public void attackAgent(Agent attacker, Agent attacked){
+			attacked.hp = attacked.hp - attacker.attackDamage;
+			if(attacked.hp < 0){
+				guys.remove(attacked.id);
+				if(attacked.isGood()){
+					currentNumGood--;
+				} else {
+					currentNumBad--;
+				}
+			}
+		}
 
 		public boolean isEmpty(int x, int y){
 			return board[x][y] == null;
@@ -74,6 +92,10 @@ public class GameState {
 
 		public Agent getAgent(int i) {
 			return guys.get(i);
+		}
+		
+		public Collection<Agent> getAliveAgents(){
+			return guys.values();
 		}
 
 		public double distance(Agent agent1, Agent agent2) {
@@ -167,7 +189,7 @@ public class GameState {
 		double score = 0.0;
 
 		double goodGuys = haveGoodGuysUtility();
-		if(goodGuys == Double.NEGATIVE_INFINITY){
+		if(goodGuys == MIN_UTILITY){
 			this.utility = goodGuys;
 			return this.utility;
 		} else {
@@ -175,7 +197,7 @@ public class GameState {
 		}
 		
 		double badGuys = haveBadGuysUtility();
-		if(goodGuys == Double.POSITIVE_INFINITY){
+		if(badGuys == MAX_UTILITY){
 			this.utility = badGuys;
 			return this.utility;
 		} else {
@@ -214,7 +236,7 @@ public class GameState {
 		boolean atLeastOne = false;
 		for(Agent agent : this.board.guys.values()){
 			if(agent.isGood() && agent.isAlive()){
-				utility += 100;
+				utility += 1;
 				atLeastOne = true;
 			}
 		}
@@ -229,7 +251,7 @@ public class GameState {
 		boolean atLeastOne = false;
 		for(Agent agent : this.board.guys.values()){
 			if(!agent.isGood()){
-				utility -= 100;
+				utility -= 1;
 				atLeastOne = true;
 			}
 		}
@@ -330,9 +352,9 @@ public class GameState {
 			this.board.moveAgentBy(directedAction.getUnitId(), directedAction.getDirection().xComponent(), directedAction.getDirection().yComponent());
 		} else {
 			TargetedAction targetedAction = (TargetedAction) action;
-			Agent attacker = this.board.guys.get(targetedAction.getUnitId());
-			Agent other = this.board.guys.get(targetedAction.getTargetId());
-			other.hp -= attacker.attackDamage;
+			Agent attacker = this.board.getAgent(targetedAction.getUnitId());
+			Agent attacked = this.board.getAgent(targetedAction.getTargetId());
+			this.board.attackAgent(attacker, attacked);
 		}
 	}
 

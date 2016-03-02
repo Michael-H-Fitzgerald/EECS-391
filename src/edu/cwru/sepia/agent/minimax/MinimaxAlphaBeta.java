@@ -118,7 +118,7 @@ public class MinimaxAlphaBeta extends Agent {
 	}
 
 	private boolean cutOffTest(GameStateChild node, int depth) {
-		return depth == 0 || node.state.getUtility() == Double.POSITIVE_INFINITY;
+		return depth == 0 || node.state.getUtility() == GameState.MAX_UTILITY || node.state.getUtility() == GameState.MIN_UTILITY;
 	}
 
 
