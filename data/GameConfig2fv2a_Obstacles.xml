@@ -15,8 +15,8 @@
 	</Player>
 	<Player Id="1">
 		<AgentClass>
-			<ClassName>ArcherAgent1</ClassName>
-			<Argument>3243</Argument>
+			<ClassName>ArcherAgent</ClassName>
+			<Argument>1</Argument>
 		</AgentClass>
 	</Player>
 	<ModelParameters>
