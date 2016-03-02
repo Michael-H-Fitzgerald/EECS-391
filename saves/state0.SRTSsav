@@ -768,17 +768,17 @@
         <unit>
             <ID>3</ID>
             <currentHealth>50</currentHealth>
-            <xPosition>0</xPosition>
-            <yPosition>11</yPosition>
+            <xPosition>6</xPosition>
+            <yPosition>13</yPosition>
             <templateID>55</templateID>
             <cargoAmount>0</cargoAmount>
             <progressAmount>0</progressAmount>
         </unit>
         <unit>
             <ID>4</ID>
-            <currentHealth>42</currentHealth>
-            <xPosition>12</xPosition>
-            <yPosition>14</yPosition>
+            <currentHealth>50</currentHealth>
+            <xPosition>18</xPosition>
+            <yPosition>13</yPosition>
             <templateID>55</templateID>
             <cargoAmount>0</cargoAmount>
             <progressAmount>0</progressAmount>

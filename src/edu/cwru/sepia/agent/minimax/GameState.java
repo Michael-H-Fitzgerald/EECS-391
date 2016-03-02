@@ -81,7 +81,7 @@ public class GameState {
 		}
 		
 		public double attackDistance(Agent agent1, Agent agent2){
-			return Math.min(Math.abs(agent1.x - agent2.x), Math.abs(agent1.y - agent2.y));
+			return Math.hypot(Math.abs(agent1.x - agent2.x), Math.abs(agent1.y - agent2.y));
 		}
 	}
 
@@ -157,8 +157,8 @@ public class GameState {
 
 		score += haveGoodGuysUtility();
 		score += haveBadGuysUtility();
-		score += distanceFromEnemeyUtility();
-		score += damageToEnemyUtility(); 
+		score += distanceFromEnemeyUtility() * 100;
+		score += damageToEnemyUtility() * 1000; 
 				
 		this.utility = score;
 		return this.utility;
@@ -171,7 +171,7 @@ public class GameState {
 				utility += agent.possibleHp - agent.hp;
 			}
 		}
-		return utility * 10;
+		return utility;
 	}
 
 	private double haveGoodGuysUtility() {
@@ -208,7 +208,13 @@ public class GameState {
 		double utility = 0.0;
 		for(Agent agent : this.board.guys.values()){
 			if(agent.isGood() && agent.isAlive()){
-				utility += Math.min(this.board.distance(agent, this.board.getAgent(3)), this.board.distance(agent, this.board.getAgent(4)) * 100);
+			double value = Double.POSITIVE_INFINITY;
+				for(Agent otherAgent : this.board.guys.values()){
+					if(!otherAgent.isGood() && otherAgent.isAlive()){
+						value = Math.min(this.board.distance(agent, otherAgent), value);
+					}
+				}
+			utility += value;
 			}
 		}
 		return utility * -1;
@@ -253,7 +259,7 @@ public class GameState {
 		List<Integer> attackable = new ArrayList<Integer>();
 		for(Agent otherAgent : this.board.guys.values()){
 			if(otherAgent.id != agent.id && (otherAgent.isGood() != agent.isGood()) && 
-					this.board.distance(agent, otherAgent) <= agent.attackRange){
+					this.board.attackDistance(agent, otherAgent) <= agent.attackRange){
 				attackable.add(otherAgent.id);
 			}
 		}
