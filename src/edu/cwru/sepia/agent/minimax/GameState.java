@@ -14,6 +14,7 @@ import edu.cwru.sepia.util.Direction;
 public class GameState {
 	private Board board;
 	private boolean ourTurn;
+	private double utility = 0.0;
 
 	private class Board {
 		private Square[][] board;
@@ -69,6 +70,18 @@ public class GameState {
 
 		public boolean isOnBoard(int x, int y){
 			return x >= 0 && x < width && y >= 0 && y < height; 
+		}
+
+		public Agent getAgent(int i) {
+			return guys.get(i);
+		}
+
+		public double distance(Agent agent1, Agent agent2) {
+			return (Math.abs(agent1.x - agent2.x) + Math.abs(agent1.y - agent2.y)) - 1;
+		}
+		
+		public double attackDistance(Agent agent1, Agent agent2){
+			return Math.min(Math.abs(agent1.x - agent2.x), Math.abs(agent1.y - agent2.y));
 		}
 	}
 
@@ -137,32 +150,68 @@ public class GameState {
 	}
 
 	public double getUtility() {
+		if(this.utility != 0.0){
+			return this.utility;
+		}
 		double score = 0.0;
 
-		int numGood = 0;
-		int numBad = 0;
+		score += haveGoodGuysUtility();
+		score += haveBadGuysUtility();
+		score += distanceFromEnemeyUtility();
+		score += damageToEnemyUtility(); 
+				
+		this.utility = score;
+		return this.utility;
+	}
 
+	private double damageToEnemyUtility() {
+		double utility = 0.0;
 		for(Agent agent : this.board.guys.values()){
-			if(agent.isGood()){
-				score = score + (agent.hp / agent.possibleHp);
-				score = score + (findAttackableAgents(agent).size() * 20);
-				numGood++;
-			} else {
-				score = score - (agent.hp / agent.possibleHp);
-				score = score - (findAttackableAgents(agent).size() * 5);
-				numBad++;
+			if(!agent.isGood() && agent.isAlive()){
+				utility += agent.possibleHp - agent.hp;
 			}
 		}
+		return utility * 10;
+	}
 
-		if(numGood == 0){
+	private double haveGoodGuysUtility() {
+		double utility = 0.0;
+		boolean atLeastOne = false;
+		for(Agent agent : this.board.guys.values()){
+			if(agent.isGood() && agent.isAlive()){
+				utility += 100;
+				atLeastOne = true;
+			}
+		}
+		if(!atLeastOne){
 			return Double.NEGATIVE_INFINITY;
 		}
-
-		if(numGood > 0 && numBad == 0){
+		return utility;
+	}
+	
+	private double haveBadGuysUtility() {
+		double utility = 0.0;
+		boolean atLeastOne = false;
+		for(Agent agent : this.board.guys.values()){
+			if(!agent.isGood()){
+				utility -= 100;
+				atLeastOne = true;
+			}
+		}
+		if(!atLeastOne){
 			return Double.POSITIVE_INFINITY;
 		}
-
-		return score;
+		return utility;
+	}
+	
+	private double distanceFromEnemeyUtility() {
+		double utility = 0.0;
+		for(Agent agent : this.board.guys.values()){
+			if(agent.isGood() && agent.isAlive()){
+				utility += Math.min(this.board.distance(agent, this.board.getAgent(3)), this.board.distance(agent, this.board.getAgent(4)) * 100);
+			}
+		}
+		return utility * -1;
 	}
 
 	public List<GameStateChild> getChildren() {
@@ -204,7 +253,7 @@ public class GameState {
 		List<Integer> attackable = new ArrayList<Integer>();
 		for(Agent otherAgent : this.board.guys.values()){
 			if(otherAgent.id != agent.id && (otherAgent.isGood() != agent.isGood()) && 
-					(Math.abs(agent.x - otherAgent.x) + Math.abs(agent.y - otherAgent.y)) < agent.attackRange){
+					this.board.distance(agent, otherAgent) <= agent.attackRange){
 				attackable.add(otherAgent.id);
 			}
 		}

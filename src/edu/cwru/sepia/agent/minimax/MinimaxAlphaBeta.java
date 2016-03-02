@@ -117,7 +117,7 @@ public class MinimaxAlphaBeta extends Agent {
 	}
 
 	private boolean cutOffTest(GameStateChild node, int depth) {
-		return depth >= numPlys || node.state.getUtility() == Double.POSITIVE_INFINITY;
+		return depth == 0 || node.state.getUtility() == Double.POSITIVE_INFINITY;
 	}
 
 
@@ -137,9 +137,9 @@ public class MinimaxAlphaBeta extends Agent {
     public List<GameStateChild> orderChildrenWithHeuristics(List<GameStateChild> children){
         children.sort((o1, o2) -> {
         	if(o1.state.getUtility() > o2.state.getUtility()){
-        		return 1;
-        	} else if (o1.state.getUtility() < o2.state.getUtility()){
         		return -1;
+        	} else if (o1.state.getUtility() < o2.state.getUtility()){
+        		return 1;
         	} else {
         		return 0;
         	}
