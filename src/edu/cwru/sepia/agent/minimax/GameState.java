@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import edu.cwru.sepia.action.Action;
 import edu.cwru.sepia.action.DirectedAction;
@@ -19,6 +20,7 @@ public class GameState {
 	private Board board;
 	private boolean ourTurn;
 	private double utility = 0.0;
+	private boolean utilityCalculated = false;
 
 	private class Board {
 		private Square[][] board;
@@ -73,7 +75,6 @@ public class GameState {
 		public void attackAgent(Agent attacker, Agent attacked){
 			attacked.hp = attacked.hp - attacker.attackDamage;
 			if(attacked.hp < 0){
-				guys.remove(attacked.id);
 				if(attacked.isGood()){
 					currentNumGood--;
 				} else {
@@ -86,6 +87,10 @@ public class GameState {
 			return board[x][y] == null;
 		}
 
+		public boolean isResource(int x, int y){
+			return board[x][y] != null && resources.containsKey(board[x][y].id);
+		}
+		
 		public boolean isOnBoard(int x, int y){
 			return x >= 0 && x < width && y >= 0 && y < height; 
 		}
@@ -94,8 +99,12 @@ public class GameState {
 			return guys.get(i);
 		}
 		
-		public Collection<Agent> getAliveAgents(){
-			return guys.values();
+		public Collection<Agent> getAliveGoodAgents(){
+			return guys.values().stream().filter(e -> e.isGood() && e.isAlive()).collect(Collectors.toList());
+		}
+		
+		public Collection<Agent> getAliveBadAgents(){
+			return guys.values().stream().filter(e -> !e.isGood() && e.isAlive()).collect(Collectors.toList());
 		}
 
 		public double distance(Agent agent1, Agent agent2) {
@@ -183,7 +192,7 @@ public class GameState {
 	}
 
 	public double getUtility() {
-		if(this.utility != 0.0){
+		if(this.utilityCalculated){
 			return this.utility;
 		}
 		double score = 0.0;
@@ -191,6 +200,7 @@ public class GameState {
 		double goodGuys = haveGoodGuysUtility();
 		if(goodGuys == MIN_UTILITY){
 			this.utility = goodGuys;
+			this.utilityCalculated = true;
 			return this.utility;
 		} else {
 			score += goodGuys;
@@ -199,16 +209,39 @@ public class GameState {
 		double badGuys = haveBadGuysUtility();
 		if(badGuys == MAX_UTILITY){
 			this.utility = badGuys;
+			this.utilityCalculated = true;
 			return this.utility;
 		} else {
 			score += badGuys;
 		}
 		score += distanceFromEnemeyUtility();
+		score += resourcesOnPathUtility();
 		score += damageToEnemyUtility();
 		score += canAttackUtility();
 				
 		this.utility = score;
+		this.utilityCalculated = true;
 		return this.utility;
+	}
+
+	private double resourcesOnPathUtility() {
+		double utility = 0.0;
+		for(Agent goodGuy : this.board.getAliveGoodAgents()){
+			for(Agent badGuy : this.board.getAliveBadAgents()){
+				for(int i = Math.min(goodGuy.x, badGuy.x); i < Math.max(goodGuy.x, badGuy.x); i++){
+					if(this.board.isResource(i, goodGuy.y)){
+						utility += 1;
+					}
+				}
+				
+				for(int i = Math.min(goodGuy.y, badGuy.y); i < Math.max(goodGuy.y, badGuy.y); i++){
+					if(this.board.isResource(goodGuy.y, i)){
+						utility += 1;
+					}
+				}
+			}
+		}
+		return utility * -1;
 	}
 
 	private double canAttackUtility() {
@@ -316,6 +349,9 @@ public class GameState {
 
 	private List<Map<Integer, Action>> enumerateActionOptions(List<List<Action>> allActions){
 		List<Map<Integer, Action>> actionMaps = new ArrayList<Map<Integer, Action>>();
+		if(allActions.isEmpty()){
+			return actionMaps;
+		}
 		List<Action> actionsForAgent1 = allActions.get(0);	
 		for(Action actionForAgent : actionsForAgent1){
 			if(allActions.size() == 1){

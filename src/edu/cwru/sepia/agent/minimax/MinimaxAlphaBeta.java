@@ -2,7 +2,6 @@ package edu.cwru.sepia.agent.minimax;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -78,13 +77,26 @@ public class MinimaxAlphaBeta extends Agent {
         return getStateWithValue(node, value);
     }
     
-    private GameStateChild getStateWithValue(GameStateChild node, double value) {    
-    	for(GameStateChild child : node.state.getChildren()){
+    private GameStateChild getStateWithValue(GameStateChild node, double value) {
+    	List<GameStateChild> children = node.state.getChildren();
+    	for(GameStateChild child : children){
     		if(child.state.getUtility() == value){
     			return child;
     		}
     	}
-    	return null;
+        children.sort((o1, o2) -> {
+        	if(o1.state.getUtility() > o2.state.getUtility()){
+        		return -1;
+        	} else if (o1.state.getUtility() < o2.state.getUtility()){
+        		return 1;
+        	} else {
+        		return 0;
+        	}
+        });
+        if(children.isEmpty()){
+        	return null;
+        }
+    	return children.get(0);
 	}
 
 	private double maxValue(GameStateChild node, int depth, double alpha, double beta){
@@ -135,7 +147,7 @@ public class MinimaxAlphaBeta extends Agent {
      * @param children
      * @return The list of children sorted by your heuristic.
      */
-    public List<GameStateChild> orderChildrenWithHeuristics(List<GameStateChild> children){
+    public List<GameStateChild> orderChildrenWithHeuristics(List<GameStateChild> children){ 
         children.sort((o1, o2) -> {
         	if(o1.state.getUtility() > o2.state.getUtility()){
         		return -1;
@@ -145,28 +157,27 @@ public class MinimaxAlphaBeta extends Agent {
         		return 0;
         	}
         });
-        
-        List<GameStateChild> ordered = new LinkedList<GameStateChild>();
-        for(GameStateChild child : children){
-        	int count = 0;
-        	for(Action action : child.action.values()){
-        		if(action.getType().name().equals(Action.createPrimitiveAttack(0, 0).getType().name())){
-        			count++;
-        		}
-        	}
-        	if(count == child.action.size()){
-        		ordered.add(0, child);
-        	} else if (count > 0){
-        		if(ordered.isEmpty()){
-        			ordered.add(0, child);
-        		} else {
-        			ordered.add(1, child);
-        		}
-        	} else {
-        		ordered.add(child);
-        	}
-        }
-        //ordered.addAll(children);
-        return ordered;
+        return children;
+//        List<GameStateChild> ordered = new LinkedList<GameStateChild>();
+//        for(GameStateChild child : children){
+//        	int count = 0;
+//        	for(Action action : child.action.values()){
+//        		if(action.getType().name().equals(Action.createPrimitiveAttack(0, 0).getType().name())){
+//        			count++;
+//        		}
+//        	}
+//        	if(count == child.action.size()){
+//        		ordered.add(0, child);
+//        	} else if (count > 0){
+//        		if(ordered.isEmpty()){
+//        			ordered.add(0, child);
+//        		} else {
+//        			ordered.add(1, child);
+//        		}
+//        	} else {
+//        		ordered.add(child);
+//        	}
+//        }
+//        return ordered;
     }
 }
