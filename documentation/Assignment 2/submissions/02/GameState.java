@@ -98,7 +98,7 @@ public class GameState {
 			return agents.values().stream().filter(e -> !e.isGood() && e.isAlive()).collect(Collectors.toList());
 		}
 
-		public double distance(Square agent1, Square agent2) {
+		public double distance(Agent agent1, Agent agent2) {
 			return (Math.abs(agent1.getX() - agent2.getX()) + Math.abs(agent1.getY() - agent2.getY())) - 1;
 		}
 
@@ -115,10 +115,6 @@ public class GameState {
 				}
 			}
 			return attackable;
-		}
-
-		public Collection<Resource> getResources(){ 
-			return this.resources.values();
 		}
 	}
 
@@ -309,44 +305,9 @@ public class GameState {
 			noResourcesAreInTheArea()){
 			return distanceFromEnemy() * -1;
 		}
-		if(resourceInWay()){
-			//double distResource = distanceFromResource();
-			//double distEnemy = distanceFromEnemy();
-			//if(distResource < distEnemy / 2){
-			//	return distEnemy * -1;
-			//} else {
-			//	return distResource * -1;
-			//}
-			return -100000;
-		}
-		return distanceFromEnemy() * -1;
+		return 0.0;
 	}
 	
-	private boolean resourceInWay() {
-		for(Agent goodGuy : this.board.getAliveGoodAgents()){
-			for(Agent badGuy : this.board.getAliveBadAgents()){
-				int i = goodGuy.getX();
-				int j = goodGuy.getY();
-				while(i != badGuy.getX() || j != badGuy.getY()){
-					if(this.board.isOnBoard(i, j) && this.board.isResource(i, j) ){
-						return true;
-					}
-					if(i < badGuy.getX()){
-						i++;
-					} else if (i > badGuy.getX()) {
-						i--;
-					}
-					if(j < badGuy.getY()){
-						j++;
-					} else if(j > badGuy.getY()){
-						j--;
-					}
-				}
-			}
-		}
-		return false;
-	}
-
 	private boolean noResourcesAreInTheArea(){
 		for(Agent goodGuy : this.board.getAliveGoodAgents()){
 			for(Agent badGuy : this.board.getAliveBadAgents()){
@@ -379,23 +340,6 @@ public class GameState {
 			double value = Double.POSITIVE_INFINITY;
 			for(Agent badAgent : this.board.getAliveBadAgents()){
 				value = Math.min(this.board.distance(goodAgent, badAgent), value);
-			}
-			if(value != Double.POSITIVE_INFINITY){
-				utility += value;
-			}
-		}
-		return utility;
- 	}
- 	
-	/**
-	 * @return the sum of the distances to the closest enemy for each footman
-	 */
- 	private double distanceFromResource() {
-		double utility = 0.0;
-		for(Agent goodAgent : this.board.getAliveGoodAgents()){
-			double value = Double.POSITIVE_INFINITY;
-			for(Resource resource : this.board.getResources()){
-				value = Math.min(this.board.distance(goodAgent, resource), value);
 			}
 			if(value != Double.POSITIVE_INFINITY){
 				utility += value;

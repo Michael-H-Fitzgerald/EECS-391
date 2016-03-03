@@ -2,7 +2,6 @@ package edu.cwru.sepia.agent.minimax;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -15,16 +14,7 @@ import edu.cwru.sepia.environment.model.state.State;
 public class MinimaxAlphaBeta extends Agent {
 	private static final long serialVersionUID = 1L;
 	private final int numPlys;
-	private static final Comparator<GameStateChild> COMPARATOR = (o1, o2) -> {
-    	if(o1.state.getUtility() > o2.state.getUtility()){
-    		return -1;
-    	} else if (o1.state.getUtility() < o2.state.getUtility()){
-    		return 1;
-    	} else {
-    		return 0;
-    	}
-    };
-	
+
     public MinimaxAlphaBeta(int playernum, String[] args)
     {
         super(playernum);
@@ -137,28 +127,25 @@ public class MinimaxAlphaBeta extends Agent {
 	 */
     public List<GameStateChild> orderChildrenWithHeuristics(List<GameStateChild> children){ 
         List<GameStateChild> ordered = new LinkedList<GameStateChild>();
-        List<GameStateChild> moves = new LinkedList<GameStateChild>();
         for(GameStateChild child : children){
-        	int numAttacks = 0;
+        	int count = 0;
         	for(Action action : child.action.values()){
         		if(action.getType().name().equals(GameState.ACTION_ATTACK_NAME)){
-        			numAttacks++;
+        			count++;
         		}
         	}
-        	if(numAttacks == child.action.size()){
+        	if(count == child.action.size()){
         		ordered.add(0, child);
-        	} else if (numAttacks > 0){
+        	} else if (count > 0){
         		if(ordered.isEmpty()){
         			ordered.add(0, child);
         		} else {
         			ordered.add(1, child);
         		}
         	} else {
-        		moves.add(child);
+        		ordered.add(child);
         	}
         }
-        moves.sort(COMPARATOR);
-        ordered.addAll(moves);
         return ordered;
     }
     
@@ -176,7 +163,15 @@ public class MinimaxAlphaBeta extends Agent {
     		}
     	}
     	// For some reason the value returned by AB search doesn't match any of the child state's utilities
-        children.sort(COMPARATOR);
+        children.sort((o1, o2) -> {
+        	if(o1.state.getUtility() > o2.state.getUtility()){
+        		return -1;
+        	} else if (o1.state.getUtility() < o2.state.getUtility()){
+        		return 1;
+        	} else {
+        		return 0;
+        	}
+        });
         if(children.isEmpty()){
         	// Something went very wrong elsewhere if no children where found at all
         	// I guess just don't do anything
