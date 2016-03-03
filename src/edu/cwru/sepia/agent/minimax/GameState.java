@@ -40,7 +40,7 @@ public class GameState {
 		public void addResource(int id, int x, int y){
 			Resource resource = new Resource(id, x, y);
 			board[x][y] = resource;
-			resources.put(resource.id, resource);
+			resources.put(resource.getId(), resource);
 		}
 
 		public void addAgent(int id, int x, int y, int hp, int possibleHp, int attackDamage, int attackRange){
@@ -55,13 +55,13 @@ public class GameState {
 
 		private void moveAgentBy(int id, int xOffset, int yOffset, Map<Integer, Agent> agents){
 			Agent agent = agents.get(id);
-			int currentX = agent.x;
-			int currentY = agent.y;
+			int currentX = agent.getX();
+			int currentY = agent.getY();
 			int nextX = currentX + xOffset;
 			int nextY = currentY + yOffset;
 			board[currentX][currentY] = null;
-			agent.x = nextX;
-			agent.y = nextY;
+			agent.setX(nextX);
+			agent.setY(nextY);
 			board[nextX][nextY] = agent;
 		}
 		
@@ -94,19 +94,19 @@ public class GameState {
 		}
 
 		public double distance(Agent agent1, Agent agent2) {
-			return (Math.abs(agent1.x - agent2.x) + Math.abs(agent1.y - agent2.y)) - 1;
+			return (Math.abs(agent1.getX() - agent2.getX()) + Math.abs(agent1.getY() - agent2.getY())) - 1;
 		}
 		
 		public double attackDistance(Agent agent1, Agent agent2){
-			return Math.floor(Math.hypot(Math.abs(agent1.x - agent2.x), Math.abs(agent1.y - agent2.y)));
+			return Math.floor(Math.hypot(Math.abs(agent1.getX() - agent2.getX()), Math.abs(agent1.getY() - agent2.getY())));
 		}
 		
 		private List<Integer> findAttackableAgents(Agent agent) {
 			List<Integer> attackable = new ArrayList<Integer>();
 			for(Agent otherAgent : guys.values()){
-				if(otherAgent.id != agent.id && (otherAgent.isGood() != agent.isGood()) && 
+				if(otherAgent.getId() != agent.getId() && (otherAgent.isGood() != agent.isGood()) && 
 						attackDistance(agent, otherAgent) <= agent.attackRange){
-					attackable.add(otherAgent.id);
+					attackable.add(otherAgent.getId());
 				}
 			}
 			return attackable;
@@ -114,13 +114,28 @@ public class GameState {
 	}
 
 	private abstract class Square {
-		public int id;
-		public int x;
-		public int y;
+		private int id;
+		private int x;
+		private int y;
 
 		public Square(int id, int x, int y){
 			this.id = id;
 			this.x = x;
+			this.y = y;
+		}
+		public int getId(){
+			return this.id;
+		}
+		public int getX(){
+			return this.x;
+		}
+		public void setX(int x){
+			this.x = x;
+		}
+		public int getY(){
+			return this.y;
+		}
+		public void setY(int y){
 			this.y = y;
 		}
 	}
@@ -130,6 +145,7 @@ public class GameState {
 		public int possibleHp;
 		public int attackDamage;
 		public int attackRange;
+		
 		public Agent(int id, int x, int y, int hp, int possibleHp, int attackDamage, int attackRange) {
 			super(id, x, y);
 			this.hp = hp;
@@ -139,7 +155,7 @@ public class GameState {
 		}
 
 		public boolean isGood(){
-			return id == 0 || id == 1;
+			return this.getId() == 0 || this.getId() == 1;
 		}
 
 		public boolean isAlive() {
@@ -168,11 +184,11 @@ public class GameState {
 	public GameState(GameState gameState) {
 		this.board = new Board(gameState.board.width, gameState.board.height);
 		gameState.board.guys.values().stream().forEach( (e) -> {
-			this.board.addAgent(e.id, e.x, e.y, e.hp, e.possibleHp, e.attackDamage, e.attackRange);			
+			this.board.addAgent(e.getId(), e.getX(), e.getY(), e.hp, e.possibleHp, e.attackDamage, e.attackRange);			
 		});
 
 		gameState.board.resources.values().stream().forEach( (e) -> {		
-			this.board.addResource(e.id, e.x, e.y);		
+			this.board.addResource(e.getId(), e.getX(), e.getY());		
 		});
 		this.ourTurn = !gameState.ourTurn;
 	}
@@ -214,14 +230,14 @@ public class GameState {
 		double utility = 0.0;
 		for(Agent goodGuy : this.board.getAliveGoodAgents()){
 			for(Agent badGuy : this.board.getAliveBadAgents()){
-				for(int i = Math.min(goodGuy.x, badGuy.x); i < Math.max(goodGuy.x, badGuy.x); i++){
-					if(this.board.isResource(i, goodGuy.y)){
+				for(int i = Math.min(goodGuy.getX(), badGuy.getX()); i < Math.max(goodGuy.getX(), badGuy.getX()); i++){
+					if(this.board.isResource(i, goodGuy.getY())){
 						utility += 1;
 					}
 				}
 				
-				for(int i = Math.min(goodGuy.y, badGuy.y); i < Math.max(goodGuy.y, badGuy.y); i++){
-					if(this.board.isResource(goodGuy.y, i)){
+				for(int i = Math.min(goodGuy.getY(), badGuy.getY()); i < Math.max(goodGuy.getY(), badGuy.getY()); i++){
+					if(this.board.isResource(goodGuy.getY(), i)){
 						utility += 1;
 					}
 				}
@@ -291,10 +307,10 @@ public class GameState {
 			case EAST :
 			case SOUTH :
 			case WEST :
-				int nextX = agent.x + direction.xComponent();
-				int nextY = agent.y + direction.yComponent();
+				int nextX = agent.getX() + direction.xComponent();
+				int nextY = agent.getY() + direction.yComponent();
 				if(this.board.isOnBoard(nextX, nextY) && this.board.isEmpty(nextX, nextY)){
-					actions.add(Action.createPrimitiveMove(agent.id, direction));
+					actions.add(Action.createPrimitiveMove(agent.getId(), direction));
 				}
 				break;
 			default :
@@ -302,7 +318,7 @@ public class GameState {
 			}
 		}
 		for(Integer id : this.board.findAttackableAgents(agent)){
-			actions.add(Action.createPrimitiveAttack(agent.id, id));
+			actions.add(Action.createPrimitiveAttack(agent.getId(), id));
 		}
 		return actions;
 	}

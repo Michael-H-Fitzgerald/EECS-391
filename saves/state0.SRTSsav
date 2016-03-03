@@ -5,8 +5,8 @@
         <unit>
             <ID>0</ID>
             <currentHealth>84</currentHealth>
-            <xPosition>2</xPosition>
-            <yPosition>10</yPosition>
+            <xPosition>23</xPosition>
+            <yPosition>1</yPosition>
             <templateID>25</templateID>
             <cargoAmount>0</cargoAmount>
             <progressAmount>0</progressAmount>
