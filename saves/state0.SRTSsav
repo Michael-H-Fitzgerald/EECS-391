@@ -4,8 +4,17 @@
         <ID>0</ID>
         <unit>
             <ID>0</ID>
-            <currentHealth>84</currentHealth>
-            <xPosition>23</xPosition>
+            <currentHealth>96</currentHealth>
+            <xPosition>8</xPosition>
+            <yPosition>17</yPosition>
+            <templateID>25</templateID>
+            <cargoAmount>0</cargoAmount>
+            <progressAmount>0</progressAmount>
+        </unit>
+        <unit>
+            <ID>1</ID>
+            <currentHealth>160</currentHealth>
+            <xPosition>24</xPosition>
             <yPosition>1</yPosition>
             <templateID>25</templateID>
             <cargoAmount>0</cargoAmount>
@@ -769,7 +778,7 @@
             <quantity>0</quantity>
             <type>WOOD</type>
         </resourceAmount>
-        <supply>1</supply>
+        <supply>2</supply>
         <supplyCap>0</supplyCap>
     </player>
     <player>

@@ -96,7 +96,7 @@ public class GameState {
 		public double distance(Agent agent1, Agent agent2) {
 			return (Math.abs(agent1.getX() - agent2.getX()) + Math.abs(agent1.getY() - agent2.getY())) - 1;
 		}
-		
+
 		public double attackDistance(Agent agent1, Agent agent2){
 			return Math.floor(Math.hypot(Math.abs(agent1.getX() - agent2.getX()), Math.abs(agent1.getY() - agent2.getY())));
 		}
@@ -113,7 +113,7 @@ public class GameState {
 		}
 	}
 
-	private abstract class Square {
+	private class Square {
 		private int id;
 		private int x;
 		private int y;
@@ -197,53 +197,60 @@ public class GameState {
 		if(this.utilityCalculated){
 			return this.utility;
 		}
-		double score = 0.0;
-
-		double goodGuys = haveGoodGuysUtility();
-		if(goodGuys == MIN_UTILITY){
-			this.utility = goodGuys;
-			this.utilityCalculated = true;
-			return this.utility;
-		} else {
-			score += goodGuys;
-		}
 		
-		double badGuys = haveBadGuysUtility();
-		if(badGuys == MAX_UTILITY){
-			this.utility = badGuys;
-			this.utilityCalculated = true;
-			return this.utility;
-		} else {
-			score += badGuys;
-		}
-		score += distanceFromEnemeyUtility();
-		//score += resourcesOnPathUtility();
-		score += damageToEnemyUtility();
-		score += canAttackUtility();
+		this.utility += haveGoodGuysUtility();
+		this.utility += haveBadGuysUtility();
+		this.utility += damageToEnemyUtility();
+		this.utility += locationRelativeToEnemyUtility();
+		this.utility += canAttackUtility();
 				
-		this.utility = score;
 		this.utilityCalculated = true;
 		return this.utility;
 	}
-
-	private double resourcesOnPathUtility() {
-		double utility = 0.0;
+	
+	private double locationRelativeToEnemyUtility() {
+		if(this.board.resources.isEmpty() ||
+			noResourcesAreInTheWay()){
+			return distanceToClosestEnemyUtility() * -1;
+		}
+		return 0.0;
+	}
+	
+	private boolean noResourcesAreInTheWay(){
 		for(Agent goodGuy : this.board.getAliveGoodAgents()){
 			for(Agent badGuy : this.board.getAliveBadAgents()){
-				for(int i = Math.min(goodGuy.getX(), badGuy.getX()); i < Math.max(goodGuy.getX(), badGuy.getX()); i++){
-					if(this.board.isResource(i, goodGuy.getY())){
-						utility += 1;
-					}
-				}
-				
-				for(int i = Math.min(goodGuy.getY(), badGuy.getY()); i < Math.max(goodGuy.getY(), badGuy.getY()); i++){
-					if(this.board.isResource(goodGuy.getY(), i)){
-						utility += 1;
-					}
+				if(numOfResourceInSpaceBetween(goodGuy, badGuy) != 0){
+					return false;
 				}
 			}
 		}
-		return utility * -1;
+		return true;
+	}
+	
+	private double numOfResourceInSpaceBetween(Agent goodGuy, Agent badGuy){
+		double resources = 0.0;
+		for(int i = Math.min(goodGuy.getX(), badGuy.getX()); i < Math.max(goodGuy.getX(), badGuy.getX()); i++){
+			for(int j = Math.min(goodGuy.getY(), badGuy.getY()); j < Math.max(goodGuy.getY(), badGuy.getY()); j++){
+				if(this.board.isResource(i, j)){
+					resources += 1;
+				}
+			}
+		}
+		return resources;
+	}
+	
+	private double distanceToClosestEnemyUtility() {
+		double utility = 0.0;
+		for(Agent goodAgent : this.board.getAliveGoodAgents()){
+			double value = Double.POSITIVE_INFINITY;
+			for(Agent badAgent : this.board.getAliveBadAgents()){
+				value = Math.min(this.board.distance(goodAgent, badAgent), value);
+			}
+			if(value != Double.POSITIVE_INFINITY){
+				utility += value;
+			}
+		}
+		return utility;
 	}
 
 	private double canAttackUtility() {
@@ -270,18 +277,16 @@ public class GameState {
 		return this.board.getAliveBadAgents().isEmpty() ? MAX_UTILITY : this.board.getAliveBadAgents().size();
 	}
 	
-	private double distanceFromEnemeyUtility() {
-		double utility = 0.0;
-		for(Agent goodAgent : this.board.getAliveGoodAgents()){
-			double value = Double.POSITIVE_INFINITY;
-			for(Agent badAgent : this.board.getAliveBadAgents()){
-				value = Math.min(this.board.distance(goodAgent, badAgent), value);
-			}
-			if(value != Double.POSITIVE_INFINITY){
-				utility += value;
+	private Agent getClosestEnemy(Agent goodAgent) {
+		Agent closestEnemy = null;
+		for(Agent badAgent : this.board.getAliveBadAgents()){
+			if(closestEnemy == null){
+				closestEnemy = badAgent;
+			} else if(this.board.distance(goodAgent, badAgent) < this.board.distance(goodAgent, closestEnemy)){
+				closestEnemy = badAgent;
 			}
 		}
-		return utility * -1;
+		return closestEnemy;
 	}
 
 	public List<GameStateChild> getChildren() {
