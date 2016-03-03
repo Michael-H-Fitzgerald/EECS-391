@@ -18,7 +18,7 @@ public class GameState {
 	public static final double MIN_UTILITY = Double.NEGATIVE_INFINITY;
 	public static final String ACTION_MOVE_NAME = Action.createPrimitiveMove(0, null).getType().name();
 	public static final String ACTION_ATTACK_NAME = Action.createPrimitiveAttack(0, 0).getType().name();
-	
+
 	private Board board;
 	private boolean ourTurn;
 	private boolean utilityCalculated = false;
@@ -63,7 +63,7 @@ public class GameState {
 			agent.setY(nextY);
 			board[nextX][nextY] = agent;
 		}
-		
+
 		public void attackAgent(Agent attacker, Agent attacked){
 			if(attacked != null && attacker != null){
 				attacked.hp = attacked.hp - attacker.attackDamage;
@@ -77,7 +77,7 @@ public class GameState {
 		public boolean isResource(int x, int y){
 			return board[x][y] != null && resources.containsKey(board[x][y].id);
 		}
-		
+
 		public boolean isOnBoard(int x, int y){
 			return x >= 0 && x < width && y >= 0 && y < height; 
 		}
@@ -89,11 +89,11 @@ public class GameState {
 			}
 			return agent;
 		}
-		
+
 		public Collection<Agent> getAliveGoodAgents(){
 			return agents.values().stream().filter(e -> e.isGood() && e.isAlive()).collect(Collectors.toList());
 		}
-		
+
 		public Collection<Agent> getAliveBadAgents(){
 			return agents.values().stream().filter(e -> !e.isGood() && e.isAlive()).collect(Collectors.toList());
 		}
@@ -105,7 +105,7 @@ public class GameState {
 		public double attackDistance(Agent agent1, Agent agent2){
 			return Math.floor(Math.hypot(Math.abs(agent1.getX() - agent2.getX()), Math.abs(agent1.getY() - agent2.getY())));
 		}
-		
+
 		private List<Integer> findAttackableAgents(Agent agent) {
 			List<Integer> attackable = new ArrayList<Integer>();
 			for(Agent otherAgent : agents.values()){
@@ -161,7 +161,7 @@ public class GameState {
 		public int possibleHp;
 		public int attackDamage;
 		public int attackRange;
-		
+
 		public Agent(int id, int x, int y, int hp, int possibleHp, int attackDamage, int attackRange) {
 			super(id, x, y);
 			this.hp = hp;
@@ -205,7 +205,7 @@ public class GameState {
 		state.getAllResourceNodes().stream().forEach( (e) -> {
 			this.board.addResource(e.getID(), e.getXPosition(), e.getYPosition());
 		});
-		
+
 		this.ourTurn = true;
 	}   
 
@@ -241,7 +241,7 @@ public class GameState {
 		if(this.utilityCalculated){
 			return this.utility;
 		}
-		
+
 		// Calculate features included
 		this.utility += getHasGoodAgentsUtility();
 		this.utility += getHasBadAgentsUtility();
@@ -249,25 +249,25 @@ public class GameState {
 		this.utility += getDamageToEnemyUtility();
 		this.utility += getCanAttackUtility();
 		this.utility += getLocationUtility();
-				
+
 		this.utilityCalculated = true;
 		return this.utility;
 	}
-	
+
 	/**
 	 * @return the number of good agents or the MIN_UTILITY if all good agents are dead (the game is over and we lost) 
 	 */
 	private double getHasGoodAgentsUtility() {
 		return this.board.getAliveGoodAgents().isEmpty() ? MIN_UTILITY : this.board.getAliveGoodAgents().size();
 	}
-	
+
 	/**
 	 * @return the number of bad agents or the MAX_UTILITY if all bad agents are dead (the game is over and we won) 
 	 */
 	private double getHasBadAgentsUtility() {
 		return this.board.getAliveBadAgents().isEmpty() ? MAX_UTILITY : this.board.getAliveBadAgents().size();
 	}
-	
+
 	/**
 	 * @return the amount of health each footman has
 	 */
@@ -278,7 +278,7 @@ public class GameState {
 		}
 		return utility;
 	}
-	
+
 	/**
 	 * @return how much damage has been done to each archer
 	 */
@@ -289,7 +289,7 @@ public class GameState {
 		}
 		return utility;
 	}
-	
+
 	/**
 	 * @return the number of agents that are within range of the footmen
 	 */
@@ -300,36 +300,33 @@ public class GameState {
 		}
 		return utility;
 	}
-	
+
 	/**
 	 * @return how optimal the footman positions are attempts to deal with obstacles (resources)
 	 */
 	private double getLocationUtility() {
 		if(this.board.resources.isEmpty() ||
-			noResourcesAreInTheArea()){
+				noResourcesAreInTheArea()){
 			return distanceFromEnemy() * -1;
 		}
-		if(resourceInWay()){
-			//double distResource = distanceFromResource();
-			//double distEnemy = distanceFromEnemy();
-			//if(distResource < distEnemy / 2){
-			//	return distEnemy * -1;
-			//} else {
-			//	return distResource * -1;
-			//}
-			return -100000;
+		double percentageBlocked = percentageOfBlockedFootmen();
+		if(percentageBlocked > 0){
+			return -200000 * percentageBlocked;
 		}
 		return distanceFromEnemy() * -1;
 	}
-	
-	private boolean resourceInWay() {
+
+	private double percentageOfBlockedFootmen() {
+		int count = 0;
+		int numGood = 0;
 		for(Agent goodGuy : this.board.getAliveGoodAgents()){
-			for(Agent badGuy : this.board.getAliveBadAgents()){
+			Agent badGuy = this.getClosestEnemy(goodGuy);
+			if(badGuy != null){
 				int i = goodGuy.getX();
 				int j = goodGuy.getY();
 				while(i != badGuy.getX() || j != badGuy.getY()){
 					if(this.board.isOnBoard(i, j) && this.board.isResource(i, j) ){
-						return true;
+						count++;
 					}
 					if(i < badGuy.getX()){
 						i++;
@@ -343,21 +340,26 @@ public class GameState {
 					}
 				}
 			}
+			numGood++;
 		}
-		return false;
+		return count/numGood;
 	}
 
 	private boolean noResourcesAreInTheArea(){
+		int count = 0;
+		int numGood = 0;
 		for(Agent goodGuy : this.board.getAliveGoodAgents()){
 			for(Agent badGuy : this.board.getAliveBadAgents()){
 				if(numResourceInAreaBetween(goodGuy, badGuy) != 0){
-					return false;
+					count++;
+					numGood++;
 				}
 			}
 		}
-		return true;
+
+		return count < numGood;
 	}
-	
+
 	private double numResourceInAreaBetween(Agent goodGuy, Agent badGuy){
 		double resources = 0.0;
 		for(int i = Math.min(goodGuy.getX(), badGuy.getX()); i < Math.max(goodGuy.getX(), badGuy.getX()); i++){
@@ -369,11 +371,11 @@ public class GameState {
 		}
 		return resources;
 	}
-	
+
 	/**
 	 * @return the sum of the distances to the closest enemy for each footman
 	 */
- 	private double distanceFromEnemy() {
+	private double distanceFromEnemy() {
 		double utility = 0.0;
 		for(Agent goodAgent : this.board.getAliveGoodAgents()){
 			double value = Double.POSITIVE_INFINITY;
@@ -385,25 +387,8 @@ public class GameState {
 			}
 		}
 		return utility;
- 	}
- 	
-	/**
-	 * @return the sum of the distances to the closest enemy for each footman
-	 */
- 	private double distanceFromResource() {
-		double utility = 0.0;
-		for(Agent goodAgent : this.board.getAliveGoodAgents()){
-			double value = Double.POSITIVE_INFINITY;
-			for(Resource resource : this.board.getResources()){
-				value = Math.min(this.board.distance(goodAgent, resource), value);
-			}
-			if(value != Double.POSITIVE_INFINITY){
-				utility += value;
-			}
-		}
-		return utility;
- 	}
-	
+	}
+
 	private Agent getClosestEnemy(Agent goodAgent) {
 		Agent closestEnemy = null;
 		for(Agent badAgent : this.board.getAliveBadAgents()){
