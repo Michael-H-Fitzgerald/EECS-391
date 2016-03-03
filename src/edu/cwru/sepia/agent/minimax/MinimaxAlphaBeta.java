@@ -110,7 +110,7 @@ public class MinimaxAlphaBeta extends Agent {
 	 * @return true if the depth limit has been reached or the current node is a terminal node
 	 */
 	private boolean cutOffTest(GameStateChild node, int depth) {
-		return depth == 0 || node.state.getUtility() == GameState.MAX_UTILITY || node.state.getUtility() == GameState.MIN_UTILITY;
+		return depth == 0;
 	}
 
 	/**

@@ -65,7 +65,9 @@ public class GameState {
 		}
 		
 		public void attackAgent(Agent attacker, Agent attacked){
-			attacked.hp = attacked.hp - attacker.attackDamage;
+			if(attacked != null && attacker != null){
+				attacked.hp = attacked.hp - attacker.attackDamage;
+			}
 		}
 
 		public boolean isEmpty(int x, int y){
@@ -80,8 +82,12 @@ public class GameState {
 			return x >= 0 && x < width && y >= 0 && y < height; 
 		}
 
-		public Agent getAgent(int i) {
-			return agents.get(i);
+		public Agent getAgent(int id) {
+			Agent agent = agents.get(id);
+			if(!agent.isAlive()){
+				return null;
+			}
+			return agent;
 		}
 		
 		public Collection<Agent> getAliveGoodAgents(){
@@ -195,6 +201,7 @@ public class GameState {
 		state.getAllResourceNodes().stream().forEach( (e) -> {
 			this.board.addResource(e.getID(), e.getXPosition(), e.getYPosition());
 		});
+		
 		this.ourTurn = true;
 	}   
 
@@ -263,7 +270,7 @@ public class GameState {
 	private double getHealthUtility() {
 		double utility = 0.0;
 		for(Agent agent : this.board.getAliveGoodAgents()){
-			utility += agent.hp;
+			utility += agent.hp/agent.possibleHp;
 		}
 		return utility;
 	}
@@ -296,7 +303,7 @@ public class GameState {
 	private double getLocationUtility() {
 		if(this.board.resources.isEmpty() ||
 			noResourcesAreInTheArea()){
-			return distancesToClosestEnemy() * -1;
+			return distanceFromEnemy() * -1;
 		}
 		return 0.0;
 	}
@@ -325,16 +332,21 @@ public class GameState {
 	}
 	
 	/**
-	 * @return the sum of the distances between the footmen and the archers
+	 * @return the sum of the distances to the closest enemy for each footman
 	 */
-	private double distancesToClosestEnemy() {
-		double distance = 0.0;
+ 	private double distanceFromEnemy() {
+		double utility = 0.0;
 		for(Agent goodAgent : this.board.getAliveGoodAgents()){
-			Agent badAgent = this.getClosestEnemy(goodAgent);
-			distance += this.board.distance(goodAgent, badAgent);		
+			double value = Double.POSITIVE_INFINITY;
+			for(Agent badAgent : this.board.getAliveBadAgents()){
+				value = Math.min(this.board.distance(goodAgent, badAgent), value);
+			}
+			if(value != Double.POSITIVE_INFINITY){
+				utility += value;
+			}
 		}
-		return distance;
-	}
+		return utility;
+ 	}
 	
 	private Agent getClosestEnemy(Agent goodAgent) {
 		Agent closestEnemy = null;
