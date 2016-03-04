@@ -29,9 +29,7 @@ public class GameState {
 	 */
 	private class Board {
 		private Square[][] board;
-		private Map<Integer, Agent> agents = new HashMap<Integer, Agent>(4);
-		private ArrayList<Agent> goodAgents = new ArrayList<Agent>(2);
-		private ArrayList<Agent> badAgents = new ArrayList<Agent>(2);
+		private Map<Integer, Agent> agents = new HashMap<Integer, Agent>();
 		private Map<Integer, Resource> resources = new HashMap<Integer, Resource>();
 		private int width;
 		private int height;
@@ -52,11 +50,6 @@ public class GameState {
 			Agent agent = new Agent(id, x, y, hp, possibleHp, attackDamage, attackRange);
 			board[x][y] = agent;
 			agents.put(id, agent);
-			if(agent.isGood()){
-				goodAgents.add(agent);
-			} else {
-				badAgents.add(agent);
-			}
 		}
 
 		private void moveAgentBy(int id, int xOffset, int yOffset){
@@ -73,7 +66,7 @@ public class GameState {
 
 		public void attackAgent(Agent attacker, Agent attacked){
 			if(attacked != null && attacker != null){
-				attacked.setHp(attacked.getHp() - attacker.getAttackDamage());
+				attacked.hp = attacked.hp - attacker.attackDamage;
 			}
 		}
 
@@ -97,16 +90,12 @@ public class GameState {
 			return agent;
 		}
 
-		public Collection<Agent> getAllAgents() {
-			return agents.values();
-		}
-		
 		public Collection<Agent> getAliveGoodAgents(){
-			return goodAgents.stream().filter(e -> e.isAlive()).collect(Collectors.toList());
+			return agents.values().stream().filter(e -> e.isGood() && e.isAlive()).collect(Collectors.toList());
 		}
 
 		public Collection<Agent> getAliveBadAgents(){
-			return badAgents.stream().filter(e -> e.isAlive()).collect(Collectors.toList());
+			return agents.values().stream().filter(e -> !e.isGood() && e.isAlive()).collect(Collectors.toList());
 		}
 
 		public double distance(Square agent1, Square agent2) {
@@ -119,13 +108,17 @@ public class GameState {
 
 		private List<Integer> findAttackableAgents(Agent agent) {
 			List<Integer> attackable = new ArrayList<Integer>();
-			for(Agent otherAgent : getAllAgents()){
+			for(Agent otherAgent : agents.values()){
 				if(otherAgent.getId() != agent.getId() && (otherAgent.isGood() != agent.isGood()) && 
-						attackDistance(agent, otherAgent) <= agent.getAttackRange()){
+						attackDistance(agent, otherAgent) <= agent.attackRange){
 					attackable.add(otherAgent.getId());
 				}
 			}
 			return attackable;
+		}
+
+		public Collection<Resource> getResources(){ 
+			return this.resources.values();
 		}
 	}
 
@@ -164,10 +157,10 @@ public class GameState {
 	 *
 	 */
 	private class Agent extends Square {
-		private int hp;
-		private int possibleHp;
-		private int attackDamage;
-		private int attackRange;
+		public int hp;
+		public int possibleHp;
+		public int attackDamage;
+		public int attackRange;
 
 		public Agent(int id, int x, int y, int hp, int possibleHp, int attackDamage, int attackRange) {
 			super(id, x, y);
@@ -184,22 +177,6 @@ public class GameState {
 		public boolean isAlive() {
 			return hp > 0;
 		}
-
-		private int getHp() {
-			return hp;
-		}
-		private void setHp(int hp) {
-			this.hp = hp;
-		}
-		private int getPossibleHp() {
-			return possibleHp;
-		}
-		private int getAttackDamage() {
-			return attackDamage;
-		}
-		private int getAttackRange() {
-			return attackRange;
-		}
 	}
 
 	/**
@@ -209,7 +186,7 @@ public class GameState {
 	private class Resource extends Square {
 		public Resource(int id, int x, int y) {
 			super(id, x, y);
-		}
+		}		
 	}
 
 	/**
@@ -240,8 +217,8 @@ public class GameState {
 	 */
 	public GameState(GameState gameState) {
 		this.board = new Board(gameState.board.width, gameState.board.height);
-		gameState.board.getAllAgents().stream().forEach( (e) -> {
-			this.board.addAgent(e.getId(), e.getX(), e.getY(), e.getHp(), e.getPossibleHp(), e.getAttackDamage(), e.getAttackRange());			
+		gameState.board.agents.values().stream().forEach( (e) -> {
+			this.board.addAgent(e.getId(), e.getX(), e.getY(), e.hp, e.possibleHp, e.attackDamage, e.attackRange);			
 		});
 
 		gameState.board.resources.values().stream().forEach( (e) -> {		
@@ -297,7 +274,7 @@ public class GameState {
 	private double getHealthUtility() {
 		double utility = 0.0;
 		for(Agent agent : this.board.getAliveGoodAgents()){
-			utility += agent.getHp()/agent.getPossibleHp();
+			utility += agent.hp/agent.possibleHp;
 		}
 		return utility;
 	}
@@ -308,7 +285,7 @@ public class GameState {
 	private double getDamageToEnemyUtility() {
 		double utility = 0.0;
 		for(Agent agent : this.board.getAliveBadAgents()){
-			utility += agent.getPossibleHp() - agent.getHp();		
+			utility += agent.possibleHp - agent.hp;		
 		}
 		return utility;
 	}
@@ -339,13 +316,9 @@ public class GameState {
 		return distanceFromEnemy() * -1;
 	}
 
-	/**
-	 * a footman is blocked when the diaganol path between it an the enemy is blocked by trees
-	 * @return  number of blocked footman / total number of footmen
-	 */
 	private double percentageOfBlockedFootmen() {
-		int numBlocked = 0;
-		int totalNumGood = 0;
+		int count = 0;
+		int numGood = 0;
 		for(Agent goodGuy : this.board.getAliveGoodAgents()){
 			Agent badGuy = this.getClosestEnemy(goodGuy);
 			if(badGuy != null){
@@ -353,7 +326,7 @@ public class GameState {
 				int j = goodGuy.getY();
 				while(i != badGuy.getX() || j != badGuy.getY()){
 					if(this.board.isOnBoard(i, j) && this.board.isResource(i, j) ){
-						numBlocked++;
+						count++;
 					}
 					if(i < badGuy.getX()){
 						i++;
@@ -367,17 +340,11 @@ public class GameState {
 					}
 				}
 			}
-			totalNumGood++;
+			numGood++;
 		}
-		if(totalNumGood == 0){
-			return 0;
-		}
-		return numBlocked/totalNumGood;
+		return count/numGood;
 	}
 
-	/**
-	 * @return true if no resources even near either footman archer pair
-	 */
 	private boolean noResourcesAreInTheArea(){
 		int count = 0;
 		int numGood = 0;
@@ -385,18 +352,14 @@ public class GameState {
 			for(Agent badGuy : this.board.getAliveBadAgents()){
 				if(numResourceInAreaBetween(goodGuy, badGuy) != 0){
 					count++;
+					numGood++;
 				}
 			}
-			numGood++;
 		}
+
 		return count < numGood;
 	}
 
-	/**
-	 * @param goodGuy
-	 * @param badGuy
-	 * @return the number of resources in the largest rectangle possible between the two agent's coordinates 
-	 */
 	private double numResourceInAreaBetween(Agent goodGuy, Agent badGuy){
 		double resources = 0.0;
 		for(int i = Math.min(goodGuy.getX(), badGuy.getX()); i < Math.max(goodGuy.getX(), badGuy.getX()); i++){
@@ -426,10 +389,6 @@ public class GameState {
 		return utility;
 	}
 
-	/**
-	 * @param goodAgent
-	 * @return the closest aarcher to the footman given
-	 */
 	private Agent getClosestEnemy(Agent goodAgent) {
 		Agent closestEnemy = null;
 		for(Agent badAgent : this.board.getAliveBadAgents()){

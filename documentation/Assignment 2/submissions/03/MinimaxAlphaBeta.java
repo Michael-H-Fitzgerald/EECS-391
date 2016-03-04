@@ -176,7 +176,6 @@ public class MinimaxAlphaBeta extends Agent {
     		}
     	}
     	// For some reason the value returned by AB search doesn't match any of the child state's utilities
-    	// Haven't ever gotten here but just in case
         children.sort(COMPARATOR);
         if(children.isEmpty()){
         	// Something went very wrong elsewhere if no children where found at all
