@@ -13,6 +13,7 @@ import edu.cwru.sepia.environment.model.history.History;
 import edu.cwru.sepia.environment.model.state.State;
 import edu.cwru.sepia.environment.model.state.Template;
 import edu.cwru.sepia.environment.model.state.Unit;
+import edu.cwru.sepia.environment.model.state.Unit.UnitView;
 
 /**
  * This is an outline of the PEAgent. Implement the provided methods. You may add your own methods and members.
@@ -33,7 +34,6 @@ public class PEAgent extends Agent {
         super(playernum);
         peasantIdMap = new HashMap<Integer, Integer>();
         this.plan = plan;
-
     }
 
     @Override
@@ -79,8 +79,28 @@ public class PEAgent extends Agent {
      */
     @Override
     public Map<Integer, Action> middleStep(State.StateView stateView, History.HistoryView historyView) {
-        // TODO: Implement me!
-        return null;
+    	if(plan.isEmpty()){
+    		System.err.println("uh oh");
+    	}
+    	
+    	Map<Integer, Action> actionMap = new HashMap<Integer, Action>();
+    	int numPeasants = 1; //TODO
+    	for(int i = 0; i < numPeasants; i++){
+    		StripsAction stripsAction = plan.pop();
+    		Action sepiaAction = stripsAction.createSepiaAction();
+    		int peasantId = stripsAction.getPeasantId();
+    		
+    		
+    		UnitView peasant = stateView.getUnit(peasantId);
+    		Action currentAction = peasant.getCurrentDurativeAction(); 
+    		if(currentAction != null){
+    			while(peasant.getCurrentDurativeProgress() < 1){
+    				System.out.println("sdlkfjsd");
+    			}
+    		}
+    		actionMap.put(peasantId, sepiaAction);
+    	}
+        return actionMap;
     }
 
     /**

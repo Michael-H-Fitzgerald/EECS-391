@@ -32,5 +32,10 @@ public class DepositAction implements StripsAction {
 		Direction townhallDirection = peasantPos.getDirection(townHallPos);
 		return Action.createPrimitiveDeposit(peasantId, townhallDirection);
 	}
+	
+	@Override
+	public int getPeasantId() {
+		return peasantId;	
+	}
 
 }

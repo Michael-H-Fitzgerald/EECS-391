@@ -2,9 +2,7 @@ package edu.cwru.sepia.agent.planner;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Stack;
 
 import edu.cwru.sepia.agent.planner.actions.BuildAction;
@@ -41,15 +39,13 @@ public class GameState implements Comparable<GameState> {
 	private int obtainedGold = 0;
 	private int obtainedWood = 0;
 	
-	private Map<Integer, Position> peasantLocations = new HashMap<Integer, Position>(3);
-	private Map<Integer, Position> resourceLocations = new HashMap<Integer, Position>(7);
 	private List<StripsAction> plan = new ArrayList<StripsAction>();
 	private int townHallId;
 	private UnitView townHall;
 	private Position townHallPosition;
 	private int peasantTemplateId;
-	private Map<Integer, Peasant> peasants = new HashMap<Integer, Peasant>(3);
-	private Map<Integer, Resource> resources = new HashMap<Integer, Resource>(7);
+	private List<Peasant> peasants = new ArrayList<Peasant>(3);
+	private List<Resource> resources = new ArrayList<Resource>(7);
 	
 	public class Peasant{
 		int id;
@@ -157,11 +153,10 @@ public class GameState implements Comparable<GameState> {
 		this.buildPeasants = buildPeasants;
 		state.getAllResourceNodes().stream().forEach(e -> {
 			Position position = new Position(e.getXPosition(), e.getYPosition());
-			resourceLocations.put(e.getID(), position);
-			if(e.getType().equals("gold")){
-				resources.put(e.getID(), new Gold(e.getID(), e.getAmountRemaining(), position));
+			if(e.getType().name().equals("GOLD_MINE")){
+				resources.add(new Gold(e.getID(), e.getAmountRemaining(), position));
 			} else {
-				resources.put(e.getID(), new Wood(e.getID(), e.getAmountRemaining(), position));
+				resources.add(new Wood(e.getID(), e.getAmountRemaining(), position));
 			}
 		});
 		state.getAllUnits().stream().forEach(e -> {
@@ -172,8 +167,7 @@ public class GameState implements Comparable<GameState> {
 				this.townHallId = e.getID();
 			} else {
 				this.peasantTemplateId = e.getTemplateView().getID();
-				this.peasants.put(e.getID(), new Peasant(e.getID(), position));
-				this.peasantLocations.put(e.getID(), position);
+				this.peasants.add(new Peasant(e.getID(), position));
 			}
 		});
 	}
@@ -185,14 +179,12 @@ public class GameState implements Comparable<GameState> {
 		this.requiredGold = state.requiredGold;
 		this.requiredWood = state.requiredWood;
 		
-		state.peasantLocations.entrySet().stream().forEach(e -> this.peasantLocations.put(e.getKey(), e.getValue()));
-		state.resourceLocations.entrySet().stream().forEach(e -> this.resourceLocations.put(e.getKey(), e.getValue()));
-		state.peasants.entrySet().stream().forEach(e -> this.peasants.put(e.getKey(), new Peasant(e.getValue())));
-		state.resources.entrySet().stream().forEach(e -> {
-			if(e.getValue().isGold()){
-				this.resources.put(e.getKey(), new Gold(e.getValue()));
+		state.peasants.stream().forEach(e -> this.peasants.add(new Peasant(e)));
+		state.resources.stream().forEach(e -> {
+			if(e.isGold()){
+				this.resources.add(new Gold(e));
 			} else {
-				this.resources.put(e.getKey(), new Wood(e.getValue()));
+				this.resources.add(new Wood(e));
 			}
 		});
 		
@@ -228,26 +220,47 @@ public class GameState implements Comparable<GameState> {
 
 	private Collection<? extends GameState> generateMoveActionChildren() {
 		List<GameState> children = new ArrayList<GameState>();
-		for(Resource resource : this.resources.values()){
-			if(resource.amountLeft > 100){
-				for(Peasant peasant : this.peasants.values()){
-					GameState child = new GameState(this);
-					MoveAction action = new MoveAction(peasant.id, resource.position.getAdjacentPositions().get(0));
-					if(action.preconditionsMet(child)){
-						action.apply(child);
-						children.add(child);
+		for(Peasant peasant : this.peasants){
+			if(!peasant.isCarrying()){
+				if(!peasantCanHarvest(peasant)){
+					for(Resource resource : this.resources){
+						if(resource.amountLeft > 100){
+							if((resource.isGold() && obtainedGold < requiredGold) || (resource.isWood() && obtainedWood < requiredWood)){
+								GameState child = new GameState(this);
+								MoveAction action = new MoveAction(peasant.id, resource.position.getAdjacentPositions().get(0));
+								if(action.preconditionsMet(child)){
+									action.apply(child);
+									children.add(child);
+								}
+							}
+						}
 					}
+				}
+			} else {
+				GameState child = new GameState(this);
+				MoveAction action = new MoveAction(peasant.id, townHallPosition.getAdjacentPositions().get(0));
+				if(action.preconditionsMet(child)){
+					action.apply(child);
+					children.add(child);
 				}
 			}
 		}
 		return children;
 	}
 	
+	private boolean peasantCanHarvest(Peasant peasant) {
+		return peasant.position.getAdjacentPositions().stream().anyMatch(e -> this.isResourceLocation(e));		
+	}
+
+	private boolean isResourceLocation(Position destination) { 
+		return this.resources.stream().anyMatch(e -> e.position.equals(destination));
+	}
+
 	private Collection<? extends GameState> generateHarvestActionChildren() {
 		List<GameState> children = new ArrayList<GameState>();
-		for(Resource resource : this.resources.values()){
+		for(Resource resource : this.resources){
 			if(resource.amountLeft > 100){
-				for(Peasant peasant : this.peasants.values()){
+				for(Peasant peasant : this.peasants){
 					GameState child = new GameState(this);
 					HarvestAction action = new HarvestAction(peasant.id, resource.id, this);
 					if(action.preconditionsMet(child)){
@@ -262,7 +275,7 @@ public class GameState implements Comparable<GameState> {
 	
 	private Collection<? extends GameState> generateDepositActionChildren() {
 		List<GameState> children = new ArrayList<GameState>();
-		for(Peasant peasant : this.peasants.values()){
+		for(Peasant peasant : this.peasants){
 			if(peasant.position.isAdjacent(townHallPosition) && peasant.isCarrying()){
 				GameState child = new GameState(this);
 				DepositAction action = new DepositAction(peasant.id, this);
@@ -297,7 +310,13 @@ public class GameState implements Comparable<GameState> {
 	 * @return The value estimated remaining cost to reach a goal state from this state.
 	 */
 	public double heuristic() {
-		return obtainedGold + obtainedWood;
+		double result = obtainedGold + obtainedWood;
+		for(Peasant peasant : this.peasants){
+			if(peasant.isCarrying()){
+				result++;
+			}
+		}
+		return result;
 	}
 
 	/**
@@ -329,108 +348,16 @@ public class GameState implements Comparable<GameState> {
 	}
 
 	public Position getPeasantPosition(int peasantId) {
-		return peasantLocations.get(peasantId);
-	}
-	
-	/**
-	 * This is necessary to use the GameState as a key in a HashSet or HashMap. Remember that if two objects are
-	 * equal they should hash to the same value.
-	 *
-	 * @return An integer hashcode that is equal for equal states.
-	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (buildPeasants ? 1231 : 1237);
-		result = prime * result + obtainedGold;
-		result = prime * result + obtainedWood;
-		result = prime * result + ((peasantLocations == null) ? 0 : peasantLocations.hashCode());
-		result = prime * result + peasantTemplateId;
-		result = prime * result + ((peasants == null) ? 0 : peasants.hashCode());
-		result = prime * result + playernum;
-		result = prime * result + requiredGold;
-		result = prime * result + requiredWood;
-		result = prime * result + ((resourceLocations == null) ? 0 : resourceLocations.hashCode());
-		result = prime * result + ((resources == null) ? 0 : resources.hashCode());
-		result = prime * result + ((townHall == null) ? 0 : townHall.hashCode());
-		result = prime * result + townHallId;
-		result = prime * result + ((townHallPosition == null) ? 0 : townHallPosition.hashCode());
-		return result;
-	}
-
-	/**
-	 * This will be necessary to use the GameState as a key in a Set or Map.
-	 *
-	 * @param o The game state to compare
-	 * @return True if this state equals the other state, false otherwise.
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		GameState other = (GameState) obj;
-		if (buildPeasants != other.buildPeasants)
-			return false;
-		if (obtainedGold != other.obtainedGold)
-			return false;
-		if (obtainedWood != other.obtainedWood)
-			return false;
-		if (peasantLocations == null) {
-			if (other.peasantLocations != null)
-				return false;
-		} else if (!peasantLocations.equals(other.peasantLocations))
-			return false;
-		if (peasantTemplateId != other.peasantTemplateId)
-			return false;
-		if (peasants == null) {
-			if (other.peasants != null)
-				return false;
-		} else if (!peasants.equals(other.peasants))
-			return false;
-		if (playernum != other.playernum)
-			return false;
-		if (requiredGold != other.requiredGold)
-			return false;
-		if (requiredWood != other.requiredWood)
-			return false;
-		if (resourceLocations == null) {
-			if (other.resourceLocations != null)
-				return false;
-		} else if (!resourceLocations.equals(other.resourceLocations))
-			return false;
-		if (resources == null) {
-			if (other.resources != null)
-				return false;
-		} else if (!resources.equals(other.resources))
-			return false;
-		if (townHall == null) {
-			if (other.townHall != null)
-				return false;
-		} else if (!townHall.equals(other.townHall))
-			return false;
-		if (townHallId != other.townHallId)
-			return false;
-		if (townHallPosition == null) {
-			if (other.townHallPosition != null)
-				return false;
-		} else if (!townHallPosition.equals(other.townHallPosition))
-			return false;
-		return true;
+		return getPeasantWithId(peasantId).position;
 	}
 
 	public boolean isOccupied(Position destination) {
-		return resourceLocations.containsValue(destination) || peasantLocations.containsValue(destination);
+		return 	this.peasants.stream().anyMatch(e -> e.position.equals(destination)) || 
+				isResourceLocation(destination); 
 	}
 
 	public void movePosition(StripsAction action, int peasantId, Position destination) {
-		this.peasantLocations.remove(peasantId);
-		this.peasantLocations.put(peasantId, destination);
-		this.peasants.get(peasantId).position = destination;
+		getPeasantWithId(peasantId).position = destination;
 		plan.add(action);
 	}
 
@@ -439,12 +366,12 @@ public class GameState implements Comparable<GameState> {
 	}
 
 	public boolean playerIsHolding(int peasantId) {
-		Peasant peasant = this.peasants.get(peasantId);
+		Peasant peasant = getPeasantWithId(peasantId);
 		return peasant.hasGold() || peasant.hasWood();
 	}
 
 	public void deposit(StripsAction action, int peasantId) {
-		Peasant peasant = this.peasants.get(peasantId);
+		Peasant peasant = getPeasantWithId(peasantId);
 		if(peasant.hasGold()){
 			this.obtainedGold = this.obtainedGold + peasant.numGold;
 			peasant.numGold = 0;
@@ -456,16 +383,16 @@ public class GameState implements Comparable<GameState> {
 	}
 
 	public Position getResourcePosition(int resourceId) {
-		return this.resourceLocations.get(resourceId);
+		return getResourceWithId(resourceId).position;
 	}
 
 	public boolean hasResources(int resourceId) {
-		return this.resources.get(resourceId).amountLeft > 0;
+		return getResourceWithId(resourceId).amountLeft > 0;
 	}
 
 	public void harvest(StripsAction action, int peasantId, int resourceId) {
-		Resource resource = this.resources.get(resourceId);
-		Peasant peasant = this.peasants.get(peasantId);
+		Resource resource = getResourceWithId(resourceId);
+		Peasant peasant = getPeasantWithId(peasantId);
 		if(resource.isGold()){
 			peasant.numGold = Math.min(100, resource.amountLeft);
 			resource.amountLeft = Math.max(0, resource.amountLeft - 100);
@@ -484,8 +411,77 @@ public class GameState implements Comparable<GameState> {
 		this.obtainedGold = this.obtainedGold - 400;
 		int id = 2;
 		Peasant peasant = new Peasant(id, new Position(townHallPosition.x + 1, townHallPosition.y));
-		this.peasants.put(id, peasant);
+		this.peasants.add(peasant);
 		plan.add(action);
 	}
 
+	public Peasant getPeasantWithId(int peasantId){
+		return this.peasants.stream().filter(e -> e.id == peasantId).findFirst().get();
+	}
+	
+	public Resource getResourceWithId(int resourceId){
+		return this.resources.stream().filter(e -> e.id == resourceId).findFirst().get();
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + (buildPeasants ? 1231 : 1237);
+		result = prime * result + obtainedGold;
+		result = prime * result + obtainedWood;
+		result = prime * result + peasantTemplateId;
+		result = prime * result + ((peasants == null) ? 0 : peasants.hashCode());
+		result = prime * result + playernum;
+		result = prime * result + requiredGold;
+		result = prime * result + requiredWood;
+		result = prime * result + ((resources == null) ? 0 : resources.hashCode());
+		result = prime * result + townHallId;
+		result = prime * result + ((townHallPosition == null) ? 0 : townHallPosition.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		GameState other = (GameState) obj;
+		if (buildPeasants != other.buildPeasants)
+			return false;
+		if (obtainedGold != other.obtainedGold)
+			return false;
+		if (obtainedWood != other.obtainedWood)
+			return false;
+		if (peasantTemplateId != other.peasantTemplateId)
+			return false;
+		if (peasants == null) {
+			if (other.peasants != null)
+				return false;
+		} else if (!peasants.equals(other.peasants))
+			return false;
+		if (playernum != other.playernum)
+			return false;
+		if (requiredGold != other.requiredGold)
+			return false;
+		if (requiredWood != other.requiredWood)
+			return false;
+		if (resources == null) {
+			if (other.resources != null)
+				return false;
+		} else if (!resources.equals(other.resources))
+			return false;
+		if (townHallId != other.townHallId)
+			return false;
+		if (townHallPosition == null) {
+			if (other.townHallPosition != null)
+				return false;
+		} else if (!townHallPosition.equals(other.townHallPosition))
+			return false;
+		return true;
+	}	
+	
 }

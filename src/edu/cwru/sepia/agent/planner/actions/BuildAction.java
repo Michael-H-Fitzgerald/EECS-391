@@ -27,5 +27,10 @@ public class BuildAction implements StripsAction {
 	public Action createSepiaAction() {
 		return Action.createPrimitiveProduction(townhallId, peasantTemplateId);
 	}
+	
+	@Override
+	public int getPeasantId() {
+		return -1;	
+	}
 
 }

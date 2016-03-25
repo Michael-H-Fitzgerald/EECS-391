@@ -40,4 +40,6 @@ public interface StripsAction {
     public GameState apply(GameState state);
 
 	public Action createSepiaAction();
+
+	public int getPeasantId();
 }

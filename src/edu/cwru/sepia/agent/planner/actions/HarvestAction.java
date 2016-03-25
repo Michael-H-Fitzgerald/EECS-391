@@ -20,7 +20,7 @@ public class HarvestAction implements StripsAction {
 	
 	@Override
 	public boolean preconditionsMet(GameState state) {
-		return peasantPos.isAdjacent(resourcePos) && state.hasResources(resourceId);
+		return !state.getPeasantWithId(peasantId).isCarrying() && peasantPos.isAdjacent(resourcePos) && state.hasResources(resourceId);
 	}
 
 	@Override
@@ -34,5 +34,9 @@ public class HarvestAction implements StripsAction {
 		Direction resourceDirection = peasantPos.getDirection(resourcePos);
 		return Action.createPrimitiveGather(peasantId, resourceDirection);
 	}
-
+	
+	@Override
+	public int getPeasantId() {
+		return peasantId;	
+	}
 }
