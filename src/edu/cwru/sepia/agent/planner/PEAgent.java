@@ -7,13 +7,14 @@ import java.util.Map;
 import java.util.Stack;
 
 import edu.cwru.sepia.action.Action;
+import edu.cwru.sepia.action.ActionFeedback;
+import edu.cwru.sepia.action.ActionResult;
 import edu.cwru.sepia.agent.Agent;
 import edu.cwru.sepia.agent.planner.actions.StripsAction;
 import edu.cwru.sepia.environment.model.history.History;
 import edu.cwru.sepia.environment.model.state.State;
 import edu.cwru.sepia.environment.model.state.Template;
 import edu.cwru.sepia.environment.model.state.Unit;
-import edu.cwru.sepia.environment.model.state.Unit.UnitView;
 
 /**
  * This is an outline of the PEAgent. Implement the provided methods. You may add your own methods and members.
@@ -79,37 +80,21 @@ public class PEAgent extends Agent {
      */
     @Override
     public Map<Integer, Action> middleStep(State.StateView stateView, History.HistoryView historyView) {
-    	if(plan.isEmpty()){
-    		System.err.println("uh oh");
-    	}
-    	
-    	Map<Integer, Action> actionMap = new HashMap<Integer, Action>();
-    	int numPeasants = 1; //TODO
-    	for(int i = 0; i < numPeasants; i++){
-    		StripsAction stripsAction = plan.pop();
-    		Action sepiaAction = stripsAction.createSepiaAction();
-    		int peasantId = stripsAction.getPeasantId();
-    		
-    		
-    		UnitView peasant = stateView.getUnit(peasantId);
-    		Action currentAction = peasant.getCurrentDurativeAction(); 
-    		if(currentAction != null){
-    			while(peasant.getCurrentDurativeProgress() < 1){
-    				System.out.println("sdlkfjsd");
+    	Map<Integer, Action> executionPlan = new HashMap<Integer, Action>();
+    	int previousTurnNumber = stateView.getTurnNumber() - 1;
+    	if(previousTurnNumber < 0) {
+    		StripsAction action = plan.pop();
+    		executionPlan.put(action.getPeasantId(), action.createSepiaAction());
+    	}else if(!plan.isEmpty()){		
+    		Map<Integer, ActionResult> actionResults = historyView.getCommandFeedback(playernum, previousTurnNumber);
+    		for(ActionResult result : actionResults.values()){
+    			if(result.getFeedback() != ActionFeedback.INCOMPLETE){
+    				StripsAction action = plan.pop();   
+    				executionPlan.put(action.getPeasantId(), action.createSepiaAction());					
     			}
     		}
-    		actionMap.put(peasantId, sepiaAction);
     	}
-        return actionMap;
-    }
-
-    /**
-     * Returns a SEPIA version of the specified Strips Action.
-     * @param action StripsAction
-     * @return SEPIA representation of same action
-     */
-    private Action createSepiaAction(StripsAction action) {
-        return action.createSepiaAction();
+    	return executionPlan;
     }
 
     @Override

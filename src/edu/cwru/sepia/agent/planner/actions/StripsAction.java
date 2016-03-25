@@ -39,6 +39,11 @@ public interface StripsAction {
      */
     public GameState apply(GameState state);
 
+    /**
+     * Returns a SEPIA version of the specified Strips Action.
+     * @param action StripsAction
+     * @return SEPIA representation of same action
+     */
 	public Action createSepiaAction();
 
 	public int getPeasantId();
