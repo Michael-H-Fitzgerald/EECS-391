@@ -46,6 +46,7 @@ public class GameState implements Comparable<GameState> {
 	private int peasantTemplateId;
 	private List<Peasant> peasants = new ArrayList<Peasant>(3);
 	private List<Resource> resources = new ArrayList<Resource>(7);
+	private int buildPeasantOffset = 0;
 	
 	public class Peasant{
 		public int id;
@@ -211,7 +212,8 @@ public class GameState implements Comparable<GameState> {
 		this.obtainedWood = state.obtainedWood;
 		this.requiredGold = state.requiredGold;
 		this.requiredWood = state.requiredWood;
-		
+		this.buildPeasants = state.buildPeasants;
+		this.buildPeasantOffset = state.buildPeasantOffset;
 		state.peasants.stream().forEach(e -> this.peasants.add(new Peasant(e)));
 		state.resources.stream().forEach(e -> {
 			if(e.isGold()){
@@ -243,12 +245,11 @@ public class GameState implements Comparable<GameState> {
 	 * @return A list of the possible successor states and their associated actions
 	 */
 	public List<GameState> generateChildren() {
-		
 		List<GameState> children = new ArrayList<GameState>();
+		children.addAll(generateBuildActionChildren());
 		children.addAll(generateMoveActionChildren());
 		children.addAll(generateHarvestActionChildren());
 		children.addAll(generateDepositActionChildren());
-		children.addAll(generateBuildActionChildren());
 		return children;
 	}
 
@@ -344,7 +345,7 @@ public class GameState implements Comparable<GameState> {
 	 * @return The value estimated remaining cost to reach a goal state from this state.
 	 */
 	public double heuristic() {
-		double result = obtainedGold + obtainedWood;
+		double result = obtainedGold + obtainedWood + buildPeasantOffset;
 		for(Peasant peasant : this.peasants){
 			if(peasant.isCarrying()){
 				result++;
@@ -373,9 +374,9 @@ public class GameState implements Comparable<GameState> {
 	 */
 	@Override
 	public int compareTo(GameState o) {
-		if(this.heuristic() > o.heuristic()){
+		if(this.heuristic() + this.getCost() > o.heuristic() + o.getCost()){
 			return 1;
-		} else if(this.heuristic() < o.heuristic()){
+		} else if(this.heuristic() + this.getCost() < o.heuristic() + o.getCost()){
 			return -1;
 		}
 		return 0;
@@ -446,6 +447,7 @@ public class GameState implements Comparable<GameState> {
 		int id = 2;
 		Peasant peasant = new Peasant(id, new Position(townHallPosition.x + 1, townHallPosition.y));
 		this.peasants.add(peasant);
+		this.buildPeasantOffset = this.buildPeasantOffset + 500;
 		plan.add(action);
 	}
 
@@ -463,6 +465,7 @@ public class GameState implements Comparable<GameState> {
 		int result = 1;
 		result = prime * result + obtainedGold;
 		result = prime * result + obtainedWood;
+		result = prime * result + buildPeasantOffset;
 		result = prime * result + ((peasants == null) ? 0 : peasants.hashCode());
 		return result;
 	}
@@ -479,6 +482,8 @@ public class GameState implements Comparable<GameState> {
 		if (obtainedGold != other.obtainedGold)
 			return false;
 		if (obtainedWood != other.obtainedWood)
+			return false;
+		if (buildPeasantOffset != other.buildPeasantOffset)
 			return false;
 		if (peasants == null) {
 			if (other.peasants != null)

@@ -81,7 +81,7 @@ public class PEAgent extends Agent {
     @Override
     public Map<Integer, Action> middleStep(State.StateView stateView, History.HistoryView historyView) {
     	Map<Integer, Action> actionMap = new HashMap<Integer, Action>();
-    	System.out.println("Plan found trying to execute");
+
     	if(plan.isEmpty()){
     		return actionMap;
     	}
@@ -104,6 +104,7 @@ public class PEAgent extends Agent {
     private void addNextAction(Map<Integer, Action> actionMap) {
     	StripsAction action = plan.pop();   
 		actionMap.put(action.getPeasantId(), action.createSepiaAction());
+		System.out.println(action.toString());
 	}
 
 	@Override
