@@ -48,8 +48,8 @@ public class GameState implements Comparable<GameState> {
 	private List<Resource> resources = new ArrayList<Resource>(7);
 	
 	public class Peasant{
-		int id;
-		Position position;
+		public int id;
+		public Position position;
 		int numGold = 0;
 		int numWood = 0;
 		
@@ -72,12 +72,45 @@ public class GameState implements Comparable<GameState> {
 		public boolean isCarrying(){
 			return hasGold() || hasWood();
 		}
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + id;
+			result = prime * result + numGold;
+			result = prime * result + numWood;
+			result = prime * result + ((position == null) ? 0 : position.hashCode());
+			return result;
+		}
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			Peasant other = (Peasant) obj;
+			if (id != other.id)
+				return false;
+			if (numGold != other.numGold)
+				return false;
+			if (numWood != other.numWood)
+				return false;
+			if (position == null) {
+				if (other.position != null)
+					return false;
+			} else if (!position.equals(other.position))
+				return false;
+			return true;
+		}		
+		
 	}
 	
 	public abstract class Resource {
-		int id;
+		public int id;
 		int amountLeft;
-		Position position;
+		public Position position;
 		public abstract boolean isGold();
 		public abstract boolean isWood();
 	}
@@ -210,6 +243,7 @@ public class GameState implements Comparable<GameState> {
 	 * @return A list of the possible successor states and their associated actions
 	 */
 	public List<GameState> generateChildren() {
+		
 		List<GameState> children = new ArrayList<GameState>();
 		children.addAll(generateMoveActionChildren());
 		children.addAll(generateHarvestActionChildren());
@@ -258,11 +292,11 @@ public class GameState implements Comparable<GameState> {
 
 	private Collection<? extends GameState> generateHarvestActionChildren() {
 		List<GameState> children = new ArrayList<GameState>();
-		for(Resource resource : this.resources){
-			if(resource.amountLeft > 100){
-				for(Peasant peasant : this.peasants){
+		for(Peasant peasant : this.peasants){
+			if(!peasant.isCarrying()){
+				for(Resource resource : this.resources){
 					GameState child = new GameState(this);
-					HarvestAction action = new HarvestAction(peasant.id, resource.id, this);
+					HarvestAction action = new HarvestAction(peasant, resource);
 					if(action.preconditionsMet(child)){
 						action.apply(child);
 						children.add(child);
@@ -273,7 +307,7 @@ public class GameState implements Comparable<GameState> {
 		return children;
 	}
 	
-	private Collection<? extends GameState> generateDepositActionChildren() {
+	private Collection<? extends GameState> generateDepositActionChildren(){
 		List<GameState> children = new ArrayList<GameState>();
 		for(Peasant peasant : this.peasants){
 			if(peasant.position.isAdjacent(townHallPosition) && peasant.isCarrying()){
@@ -427,17 +461,9 @@ public class GameState implements Comparable<GameState> {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + (buildPeasants ? 1231 : 1237);
 		result = prime * result + obtainedGold;
 		result = prime * result + obtainedWood;
-		result = prime * result + peasantTemplateId;
 		result = prime * result + ((peasants == null) ? 0 : peasants.hashCode());
-		result = prime * result + playernum;
-		result = prime * result + requiredGold;
-		result = prime * result + requiredWood;
-		result = prime * result + ((resources == null) ? 0 : resources.hashCode());
-		result = prime * result + townHallId;
-		result = prime * result + ((townHallPosition == null) ? 0 : townHallPosition.hashCode());
 		return result;
 	}
 
@@ -450,38 +476,18 @@ public class GameState implements Comparable<GameState> {
 		if (getClass() != obj.getClass())
 			return false;
 		GameState other = (GameState) obj;
-		if (buildPeasants != other.buildPeasants)
-			return false;
 		if (obtainedGold != other.obtainedGold)
 			return false;
 		if (obtainedWood != other.obtainedWood)
-			return false;
-		if (peasantTemplateId != other.peasantTemplateId)
 			return false;
 		if (peasants == null) {
 			if (other.peasants != null)
 				return false;
 		} else if (!peasants.equals(other.peasants))
 			return false;
-		if (playernum != other.playernum)
-			return false;
-		if (requiredGold != other.requiredGold)
-			return false;
-		if (requiredWood != other.requiredWood)
-			return false;
-		if (resources == null) {
-			if (other.resources != null)
-				return false;
-		} else if (!resources.equals(other.resources))
-			return false;
-		if (townHallId != other.townHallId)
-			return false;
-		if (townHallPosition == null) {
-			if (other.townHallPosition != null)
-				return false;
-		} else if (!townHallPosition.equals(other.townHallPosition))
-			return false;
 		return true;
-	}	
+	}
+
+	
 	
 }

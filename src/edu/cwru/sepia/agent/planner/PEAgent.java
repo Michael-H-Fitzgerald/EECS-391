@@ -80,24 +80,33 @@ public class PEAgent extends Agent {
      */
     @Override
     public Map<Integer, Action> middleStep(State.StateView stateView, History.HistoryView historyView) {
-    	Map<Integer, Action> executionPlan = new HashMap<Integer, Action>();
+    	Map<Integer, Action> actionMap = new HashMap<Integer, Action>();
+    	System.out.println("Plan found trying to execute");
+    	if(plan.isEmpty()){
+    		return actionMap;
+    	}
+    	
     	int previousTurnNumber = stateView.getTurnNumber() - 1;
     	if(previousTurnNumber < 0) {
-    		StripsAction action = plan.pop();
-    		executionPlan.put(action.getPeasantId(), action.createSepiaAction());
-    	}else if(!plan.isEmpty()){		
-    		Map<Integer, ActionResult> actionResults = historyView.getCommandFeedback(playernum, previousTurnNumber);
-    		for(ActionResult result : actionResults.values()){
-    			if(result.getFeedback() != ActionFeedback.INCOMPLETE){
-    				StripsAction action = plan.pop();   
-    				executionPlan.put(action.getPeasantId(), action.createSepiaAction());					
-    			}
-    		}
+    		addNextAction(actionMap);
+    		return actionMap;
     	}
-    	return executionPlan;
+    	
+		Map<Integer, ActionResult> previousActions = historyView.getCommandFeedback(playernum, previousTurnNumber);
+		for(ActionResult previousAction : previousActions.values()){
+			if(previousAction.getFeedback() != ActionFeedback.INCOMPLETE){
+				addNextAction(actionMap);		
+			}
+		}
+    	return actionMap;
     }
 
-    @Override
+    private void addNextAction(Map<Integer, Action> actionMap) {
+    	StripsAction action = plan.pop();   
+		actionMap.put(action.getPeasantId(), action.createSepiaAction());
+	}
+
+	@Override
     public void terminalStep(State.StateView stateView, History.HistoryView historyView) {
 
     }
