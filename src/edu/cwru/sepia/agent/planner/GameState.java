@@ -123,7 +123,7 @@ public class GameState implements Comparable<GameState> {
 							if((resource.isGold() && obtainedGold < requiredGold) || (resource.isWood() && obtainedWood < requiredWood)){
 								GameState child = new GameState(this);
 								List<Position> adjacentList = resource.getPosition().getAdjacentPositions();
-								MoveAction action = new MoveAction(peasant.getId(), adjacentList.get(i));
+								MoveAction action = new MoveAction(peasant, adjacentList.get(i));
 								if(action.preconditionsMet(child)){
 									action.apply(child);
 									children.add(child);
@@ -134,7 +134,7 @@ public class GameState implements Comparable<GameState> {
 				}
 			} else {
 				GameState child = new GameState(this);
-				MoveAction action = new MoveAction(peasant.getId(), TOWN_HALL_POSITION.getAdjacentPositions().get(i));
+				MoveAction action = new MoveAction(peasant, TOWN_HALL_POSITION.getAdjacentPositions().get(i));
 				if(action.preconditionsMet(child)){
 					action.apply(child);
 					children.add(child);
