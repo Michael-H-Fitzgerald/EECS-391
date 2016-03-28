@@ -771,11 +771,11 @@
             <affectedUnitTypes>2</affectedUnitTypes>
         </template>
         <resourceAmount>
-            <quantity>1000</quantity>
+            <quantity>200</quantity>
             <type>GOLD</type>
         </resourceAmount>
         <resourceAmount>
-            <quantity>1000</quantity>
+            <quantity>200</quantity>
             <type>WOOD</type>
         </resourceAmount>
         <supply>1</supply>
@@ -795,7 +795,7 @@
         <xPosition>15</xPosition>
         <yPosition>3</yPosition>
         <initialAmount>0</initialAmount>
-        <amountRemaining>100</amountRemaining>
+        <amountRemaining>400</amountRemaining>
     </resourceNode>
     <resourceNode>
         <ID>4</ID>
@@ -803,7 +803,7 @@
         <xPosition>22</xPosition>
         <yPosition>16</yPosition>
         <initialAmount>0</initialAmount>
-        <amountRemaining>4400</amountRemaining>
+        <amountRemaining>4900</amountRemaining>
     </resourceNode>
     <resourceNode>
         <ID>5</ID>
@@ -819,7 +819,7 @@
         <xPosition>12</xPosition>
         <yPosition>13</yPosition>
         <initialAmount>0</initialAmount>
-        <amountRemaining>100</amountRemaining>
+        <amountRemaining>400</amountRemaining>
     </resourceNode>
     <resourceNode>
         <ID>7</ID>
@@ -827,7 +827,7 @@
         <xPosition>17</xPosition>
         <yPosition>9</yPosition>
         <initialAmount>0</initialAmount>
-        <amountRemaining>300</amountRemaining>
+        <amountRemaining>400</amountRemaining>
     </resourceNode>
     <resourceNode>
         <ID>8</ID>
@@ -835,7 +835,7 @@
         <xPosition>4</xPosition>
         <yPosition>4</yPosition>
         <initialAmount>0</initialAmount>
-        <amountRemaining>100</amountRemaining>
+        <amountRemaining>300</amountRemaining>
     </resourceNode>
     <resourceNode>
         <ID>9</ID>
@@ -843,6 +843,6 @@
         <xPosition>12</xPosition>
         <yPosition>4</yPosition>
         <initialAmount>0</initialAmount>
-        <amountRemaining>100</amountRemaining>
+        <amountRemaining>300</amountRemaining>
     </resourceNode>
 </state>

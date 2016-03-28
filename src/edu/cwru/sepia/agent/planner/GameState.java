@@ -13,6 +13,8 @@ import edu.cwru.sepia.agent.planner.actions.StripsAction;
 import edu.cwru.sepia.environment.model.state.State;
 
 public class GameState implements Comparable<GameState> {
+	private static final String TOWNHALL_NAME = "townhall";
+	private static final String GOLD_RESOURCE_NAME = "GOLD_MINE";
 	private static final int MAX_RESOURCE_AMOUNT_TO_TAKE = 100;
 	public static int PEASANT_TEMPLATE_ID;
 	private static final int BUILD_PESANT_OFFSET = 20000000;
@@ -49,7 +51,7 @@ public class GameState implements Comparable<GameState> {
 		GameState.buildPeasants = buildPeasants;
 		state.getAllResourceNodes().stream().forEach(e -> {
 			Position position = new Position(e.getXPosition(), e.getYPosition());
-			if(e.getType().name().equals("GOLD_MINE")){
+			if(e.getType().name().equals(GOLD_RESOURCE_NAME)){
 				resources.add(new Gold(e.getID(), e.getAmountRemaining(), position));
 			} else {
 				resources.add(new Wood(e.getID(), e.getAmountRemaining(), position));
@@ -57,7 +59,7 @@ public class GameState implements Comparable<GameState> {
 		});
 		state.getAllUnits().stream().forEach(e -> {
 			Position position = new Position(e.getXPosition(), e.getYPosition());
-			if(e.getTemplateView().getName().toLowerCase().equals("townhall")){
+			if(e.getTemplateView().getName().toLowerCase().equals(TOWNHALL_NAME)){
 				GameState.townHallPosition = position;
 				GameState.townHallId = e.getID();
 			} else {
