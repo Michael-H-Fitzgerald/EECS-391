@@ -12,17 +12,19 @@ public class HarvestAction implements StripsAction {
 	int resourceId;
 	Position peasantPos;
 	Position resourcePos;
+	boolean hasResource;
 
 	public HarvestAction(Peasant peasant, Resource resource){
 		this.peasant = peasant;
 		this.resourceId = resource.getId();
 		this.peasantPos = peasant.getPosition();
 		this.resourcePos = resource.getPosition();
+		this.hasResource = resource.hasRemaining();
 	}
 	
 	@Override
 	public boolean preconditionsMet(GameState state) {
-		return !peasant.hasResource() && peasantPos.isAdjacent(resourcePos) && state.hasResources(resourceId);
+		return hasResource && !peasant.hasResource() && peasantPos.isAdjacent(resourcePos);	
 	}
 
 	@Override

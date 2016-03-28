@@ -224,23 +224,14 @@ public class GameState implements Comparable<GameState> {
 		return plan.size();
 	}
 
-	public Position getPeasantPosition(int peasantId) {
-		return getPeasantWithId(peasantId).getPosition();
-	}
-
 	public boolean isOccupied(Position destination) {
 		return 	this.peasants.stream().anyMatch(e -> e.getPosition().equals(destination)) || 
 				isResourceLocation(destination); 
 	}
 
 	public void movePosition(StripsAction action, int peasantId, Position destination) {
-		getPeasantWithId(peasantId).setPosition(destination);
+        getPeasantWithId(peasantId).setPosition(destination);
 		plan.add(action);
-	}
-
-	public boolean playerIsHolding(int peasantId) {
-		Peasant peasant = getPeasantWithId(peasantId);
-		return peasant.hasGold() || peasant.hasWood();
 	}
 
 	public void deposit(StripsAction action, int peasantId) {
@@ -253,14 +244,6 @@ public class GameState implements Comparable<GameState> {
 			peasant.setNumWood(0);
 		}
 		plan.add(action);
-	}
-
-	public Position getResourcePosition(int resourceId) {
-		return getResourceWithId(resourceId).getPosition();
-	}
-
-	public boolean hasResources(int resourceId) {
-		return getResourceWithId(resourceId).hasRemaining();
 	}
 
 	public void harvest(StripsAction action, int peasantId, int resourceId) {
