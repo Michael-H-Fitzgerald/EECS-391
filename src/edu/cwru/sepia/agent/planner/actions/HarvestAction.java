@@ -15,9 +15,9 @@ public class HarvestAction implements StripsAction {
 
 	public HarvestAction(Peasant peasant, Resource resource){
 		this.peasant = peasant;
-		this.resourceId = resource.id;
+		this.resourceId = resource.getId();
 		this.peasantPos = peasant.getPosition();
-		this.resourcePos = resource.position;
+		this.resourcePos = resource.getPosition();
 	}
 	
 	@Override
