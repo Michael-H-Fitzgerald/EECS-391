@@ -2,9 +2,9 @@ package edu.cwru.sepia.agent.planner.actions;
 
 import edu.cwru.sepia.action.Action;
 import edu.cwru.sepia.agent.planner.GameState;
-import edu.cwru.sepia.agent.planner.GameState.Peasant;
-import edu.cwru.sepia.agent.planner.GameState.Resource;
+import edu.cwru.sepia.agent.planner.Peasant;
 import edu.cwru.sepia.agent.planner.Position;
+import edu.cwru.sepia.agent.planner.Resource;
 import edu.cwru.sepia.util.Direction;
 
 public class HarvestAction implements StripsAction {
