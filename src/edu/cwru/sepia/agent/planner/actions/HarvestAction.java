@@ -16,29 +16,29 @@ public class HarvestAction implements StripsAction {
 	public HarvestAction(Peasant peasant, Resource resource){
 		this.peasant = peasant;
 		this.resourceId = resource.id;
-		this.peasantPos = peasant.position;
+		this.peasantPos = peasant.getPosition();
 		this.resourcePos = resource.position;
 	}
 	
 	@Override
 	public boolean preconditionsMet(GameState state) {
-		return !peasant.isCarrying() && peasantPos.isAdjacent(resourcePos) && state.hasResources(resourceId);
+		return !peasant.hasResource() && peasantPos.isAdjacent(resourcePos) && state.hasResources(resourceId);
 	}
 
 	@Override
 	public GameState apply(GameState state) {
-		state.harvest(this, peasant.id, resourceId);
+		state.harvest(this, peasant.getId(), resourceId);
 		return state;
 	}
 
 	@Override
 	public Action createSepiaAction() {
 		Direction resourceDirection = peasantPos.getDirection(resourcePos);
-		return Action.createPrimitiveGather(peasant.id, resourceDirection);
+		return Action.createPrimitiveGather(peasant.getId(), resourceDirection);
 	}
 	
 	@Override
 	public int getPeasantId() {
-		return peasant.id;	
+		return peasant.getId();	
 	}
 }
