@@ -34,7 +34,8 @@ public class GameState implements Comparable<GameState> {
 	private int playernum;
 	private int requiredGold;
 	private int requiredWood;
-	private boolean buildPeasants;
+	private boolean buildPeasants = false;
+	private int nextId = 0;
 
 	private int obtainedGold = 0;
 	private int obtainedWood = 0;
@@ -204,6 +205,7 @@ public class GameState implements Comparable<GameState> {
 				this.peasants.add(new Peasant(e.getID(), position));
 			}
 		});
+		this.nextId = 1 + this.peasants.size() + this.resources.size();
 	}
 	
 	public GameState(GameState state){
@@ -214,6 +216,7 @@ public class GameState implements Comparable<GameState> {
 		this.requiredWood = state.requiredWood;
 		this.buildPeasants = state.buildPeasants;
 		this.buildPeasantOffset = state.buildPeasantOffset;
+		this.nextId = state.nextId;
 		state.peasants.stream().forEach(e -> this.peasants.add(new Peasant(e)));
 		state.resources.stream().forEach(e -> {
 			if(e.isGold()){
@@ -247,22 +250,26 @@ public class GameState implements Comparable<GameState> {
 	public List<GameState> generateChildren() {
 		List<GameState> children = new ArrayList<GameState>();
 		children.addAll(generateBuildActionChildren());
-		children.addAll(generateMoveActionChildren());
-		children.addAll(generateHarvestActionChildren());
-		children.addAll(generateDepositActionChildren());
+		if(children.size() == 0){
+			children.addAll(generateMoveActionChildren());
+			children.addAll(generateHarvestActionChildren());
+			children.addAll(generateDepositActionChildren());
+		}
 		return children;
 	}
 
 	private Collection<? extends GameState> generateMoveActionChildren() {
 		List<GameState> children = new ArrayList<GameState>();
-		for(Peasant peasant : this.peasants){
+		for(int i = 0; i < this.peasants.size(); i++){
+			Peasant peasant = this.peasants.get(i);
 			if(!peasant.isCarrying()){
 				if(!peasantCanHarvest(peasant)){
 					for(Resource resource : this.resources){
 						if(resource.amountLeft > 100){
 							if((resource.isGold() && obtainedGold < requiredGold) || (resource.isWood() && obtainedWood < requiredWood)){
 								GameState child = new GameState(this);
-								MoveAction action = new MoveAction(peasant.id, resource.position.getAdjacentPositions().get(0));
+								List<Position> adjacentList = resource.position.getAdjacentPositions(); //TODO not related to here clean up what actions do and optimize
+								MoveAction action = new MoveAction(peasant.id, adjacentList.get(i));
 								if(action.preconditionsMet(child)){
 									action.apply(child);
 									children.add(child);
@@ -273,7 +280,7 @@ public class GameState implements Comparable<GameState> {
 				}
 			} else {
 				GameState child = new GameState(this);
-				MoveAction action = new MoveAction(peasant.id, townHallPosition.getAdjacentPositions().get(0));
+				MoveAction action = new MoveAction(peasant.id, townHallPosition.getAdjacentPositions().get(i));
 				if(action.preconditionsMet(child)){
 					action.apply(child);
 					children.add(child);
@@ -374,9 +381,9 @@ public class GameState implements Comparable<GameState> {
 	 */
 	@Override
 	public int compareTo(GameState o) {
-		if(this.heuristic() + this.getCost() > o.heuristic() + o.getCost()){
+		if(this.heuristic() > o.heuristic()){
 			return 1;
-		} else if(this.heuristic() + this.getCost() < o.heuristic() + o.getCost()){
+		} else if(this.heuristic() < o.heuristic()){
 			return -1;
 		}
 		return 0;
@@ -439,15 +446,20 @@ public class GameState implements Comparable<GameState> {
 	}
 
 	public boolean canBuild() {
-		return obtainedGold > 400 && this.peasants.size() < 3;
+		return obtainedGold >= 400 && this.peasants.size() < 3;
 	}
 
 	public void build(StripsAction action) {
 		this.obtainedGold = this.obtainedGold - 400;
-		int id = 2;
-		Peasant peasant = new Peasant(id, new Position(townHallPosition.x + 1, townHallPosition.y));
+		Peasant peasant = null;
+		if(this.peasants.size() == 1){
+			peasant = new Peasant(nextId, new Position(townHallPosition.x - 1, townHallPosition.y));
+			nextId++;
+		} else {
+			peasant = new Peasant(nextId, new Position(townHallPosition.x - 1, townHallPosition.y - 1));
+		}		
 		this.peasants.add(peasant);
-		this.buildPeasantOffset = this.buildPeasantOffset + 500;
+		this.buildPeasantOffset = this.buildPeasantOffset + 20000000;
 		plan.add(action);
 	}
 
@@ -463,9 +475,10 @@ public class GameState implements Comparable<GameState> {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + buildPeasantOffset;
+		result = prime * result + (buildPeasants ? 1231 : 1237);
 		result = prime * result + obtainedGold;
 		result = prime * result + obtainedWood;
-		result = prime * result + buildPeasantOffset;
 		result = prime * result + ((peasants == null) ? 0 : peasants.hashCode());
 		return result;
 	}
@@ -479,11 +492,13 @@ public class GameState implements Comparable<GameState> {
 		if (getClass() != obj.getClass())
 			return false;
 		GameState other = (GameState) obj;
+		if (buildPeasantOffset != other.buildPeasantOffset)
+			return false;
+		if (buildPeasants != other.buildPeasants)
+			return false;
 		if (obtainedGold != other.obtainedGold)
 			return false;
 		if (obtainedWood != other.obtainedWood)
-			return false;
-		if (buildPeasantOffset != other.buildPeasantOffset)
 			return false;
 		if (peasants == null) {
 			if (other.peasants != null)
@@ -492,7 +507,5 @@ public class GameState implements Comparable<GameState> {
 			return false;
 		return true;
 	}
-
-	
 	
 }

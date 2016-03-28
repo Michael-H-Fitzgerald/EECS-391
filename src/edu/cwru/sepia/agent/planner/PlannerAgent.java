@@ -98,6 +98,7 @@ public class PlannerAgent extends Agent {
      * @param startState The state which is being planned from
      * @return The plan or null if no plan is found.
      */
+    private int count = 0;
     private Stack<StripsAction> AstarSearch(GameState startState) {
     	PriorityQueue<GameState> frontierQueue = new PriorityQueue<GameState>();
 		Set<GameState> frontierSet = new HashSet<GameState>();
@@ -118,6 +119,8 @@ public class PlannerAgent extends Agent {
 							frontierSet.add(e);
 						} else {
 							// Replace with node with better plan.
+							count++;
+							//System.out.println("replaced node " + count + " times.");
 							frontierQueue.remove(e);
 							frontierQueue.add(e);
 							frontierSet.remove(e);

@@ -88,23 +88,34 @@ public class PEAgent extends Agent {
     	
     	int previousTurnNumber = stateView.getTurnNumber() - 1;
     	if(previousTurnNumber < 0) {
-    		addNextAction(actionMap);
+    		for(int i = 0; i < this.peasantIdMap.size(); i++){
+    			addNextAction(actionMap);
+    		}
     		return actionMap;
     	}
     	
 		Map<Integer, ActionResult> previousActions = historyView.getCommandFeedback(playernum, previousTurnNumber);
-		for(ActionResult previousAction : previousActions.values()){
-			if(previousAction.getFeedback() != ActionFeedback.INCOMPLETE){
+		for(ActionResult previousAction : previousActions.values()){ // TODO also kind of always want three actions 
+			if(previousAction.getFeedback() != ActionFeedback.INCOMPLETE){ // TODO this doesn't ever end with more than one peasants
 				addNextAction(actionMap);		
 			}
+			//if(previousAction.getAction().getType().name().equals("PRIMITIVEPRODUCE")){
+				//addNextAction(actionMap);
+			//}
 		}
+		
+		System.out.println("Nume items in actionMap: " + actionMap.size());
     	return actionMap;
     }
 
     private void addNextAction(Map<Integer, Action> actionMap) {
     	StripsAction action = plan.pop();   
 		actionMap.put(action.getPeasantId(), action.createSepiaAction());
-		System.out.println(action.toString());
+		//System.out.println(action.toString());
+		//if(action.createSepiaAction().getType().name().equals("PRIMITIVEPRODUCE")){
+			//System.out.println("build action");
+		//}
+	//	System.out.println("Peasant id: " + action.getPeasantId());
 	}
 
 	@Override
