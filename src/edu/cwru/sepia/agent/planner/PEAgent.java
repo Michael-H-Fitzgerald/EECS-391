@@ -66,9 +66,7 @@ public class PEAgent extends Agent {
      * This is where you will read the provided plan and execute it. If your plan is correct then when the plan is empty
      * the scenario should end with a victory. If the scenario keeps running after you run out of actions to execute
      * then either your plan is incorrect or your execution of the plan has a bug.
-     *
-     * these actions are stored in a mapping between the peasant unit ID executing the action and the action you created.
-     *
+     *     *
      * For the compound actions you will need to check their progress and wait until they are complete before issuing
      * another action for that unit. If you issue an action before the compound action is complete then the peasant
      * will stop what it was doing and begin executing the new action.
@@ -96,27 +94,17 @@ public class PEAgent extends Agent {
     	}
     	
 		Map<Integer, ActionResult> previousActions = historyView.getCommandFeedback(playernum, previousTurnNumber);
-		for(ActionResult previousAction : previousActions.values()){ // TODO also kind of always want three actions 
-			if(previousAction.getFeedback() != ActionFeedback.INCOMPLETE){ // TODO this doesn't ever end with more than one peasants
+		for(ActionResult previousAction : previousActions.values()){ 
+			if(previousAction.getFeedback() != ActionFeedback.INCOMPLETE){
 				addNextAction(actionMap);		
 			}
-			//if(previousAction.getAction().getType().name().equals("PRIMITIVEPRODUCE")){
-				//addNextAction(actionMap);
-			//}
 		}
-		
-		System.out.println("Nume items in actionMap: " + actionMap.size());
     	return actionMap;
     }
 
     private void addNextAction(Map<Integer, Action> actionMap) {
     	StripsAction action = plan.pop();   
 		actionMap.put(action.getPeasantId(), action.createSepiaAction());
-		//System.out.println(action.toString());
-		//if(action.createSepiaAction().getType().name().equals("PRIMITIVEPRODUCE")){
-			//System.out.println("build action");
-		//}
-	//	System.out.println("Peasant id: " + action.getPeasantId());
 	}
 
 	@Override

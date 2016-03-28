@@ -19,7 +19,7 @@ public class BuildAction implements StripsAction {
 
 	@Override
 	public GameState apply(GameState state) {
-		state.build(this);
+		state.applyBuildAction(this);
 		return state;
 	}
 

@@ -29,7 +29,7 @@ public class HarvestAction implements StripsAction {
 
 	@Override
 	public GameState apply(GameState state) {
-		state.harvest(this, peasant.getId(), resourceId);
+		state.applyHarvestAction(this, peasant.getId(), resourceId);
 		return state;
 	}
 
