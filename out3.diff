@@ -1,0 +1,475 @@
+diff --git a/saves/plan.txt b/saves/plan.txt
+index df88b74..5afaf3f 100644
+--- a/saves/plan.txt
++++ b/saves/plan.txt
+@@ -1,80 +1,56 @@
+-edu.cwru.sepia.agent.planner.actions.MoveAction@7bd41f7c
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@4fa75b6
+-edu.cwru.sepia.agent.planner.actions.MoveAction@31237f45
+-edu.cwru.sepia.agent.planner.actions.DepositAction@401e4ee
+-edu.cwru.sepia.agent.planner.actions.MoveAction@5ff534ed
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@8f5bd60
+-edu.cwru.sepia.agent.planner.actions.MoveAction@2206226c
+-edu.cwru.sepia.agent.planner.actions.DepositAction@292b8456
+-edu.cwru.sepia.agent.planner.actions.MoveAction@5f0f9fc2
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@7a3427fe
+-edu.cwru.sepia.agent.planner.actions.MoveAction@69b26f96
+-edu.cwru.sepia.agent.planner.actions.DepositAction@1c4e5fc2
+-edu.cwru.sepia.agent.planner.actions.MoveAction@3f1c3206
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@644ce9cc
+-edu.cwru.sepia.agent.planner.actions.MoveAction@1e78f40c
+-edu.cwru.sepia.agent.planner.actions.DepositAction@7026184e
+-edu.cwru.sepia.agent.planner.actions.MoveAction@2e74984e
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@2d7506c5
+-edu.cwru.sepia.agent.planner.actions.MoveAction@74f45ff3
+-edu.cwru.sepia.agent.planner.actions.DepositAction@3450cd4b
+-edu.cwru.sepia.agent.planner.actions.MoveAction@3eec8567
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@3baaff51
+-edu.cwru.sepia.agent.planner.actions.MoveAction@6df72410
+-edu.cwru.sepia.agent.planner.actions.DepositAction@5fff9670
+-edu.cwru.sepia.agent.planner.actions.MoveAction@5e2f755
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@695ed0cf
+-edu.cwru.sepia.agent.planner.actions.MoveAction@3dddbe50
+-edu.cwru.sepia.agent.planner.actions.DepositAction@1eb2f38d
+-edu.cwru.sepia.agent.planner.actions.MoveAction@cf8e751
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@133f86a9
+-edu.cwru.sepia.agent.planner.actions.MoveAction@434085a0
+-edu.cwru.sepia.agent.planner.actions.DepositAction@4a6728de
+-edu.cwru.sepia.agent.planner.actions.MoveAction@1ee9cac
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@6e8b48f6
+-edu.cwru.sepia.agent.planner.actions.MoveAction@2921bd02
+-edu.cwru.sepia.agent.planner.actions.DepositAction@5af34120
+-edu.cwru.sepia.agent.planner.actions.MoveAction@2f0dad2e
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@1b759cc1
+-edu.cwru.sepia.agent.planner.actions.MoveAction@3f98eb00
+-edu.cwru.sepia.agent.planner.actions.DepositAction@7f224792
+-edu.cwru.sepia.agent.planner.actions.MoveAction@3d04e185
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@aa0f170
+-edu.cwru.sepia.agent.planner.actions.MoveAction@7218cbcf
+-edu.cwru.sepia.agent.planner.actions.DepositAction@1feb1cc9
+-edu.cwru.sepia.agent.planner.actions.MoveAction@579de78
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@8df94d6
+-edu.cwru.sepia.agent.planner.actions.MoveAction@3cad60b1
+-edu.cwru.sepia.agent.planner.actions.DepositAction@7be73eb9
+-edu.cwru.sepia.agent.planner.actions.MoveAction@3026a5a3
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@44abfe55
+-edu.cwru.sepia.agent.planner.actions.MoveAction@1354a699
+-edu.cwru.sepia.agent.planner.actions.DepositAction@510450bc
+-edu.cwru.sepia.agent.planner.actions.MoveAction@540afc82
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@4fc8e900
+-edu.cwru.sepia.agent.planner.actions.MoveAction@799eee0e
+-edu.cwru.sepia.agent.planner.actions.DepositAction@aecd031
+-edu.cwru.sepia.agent.planner.actions.MoveAction@981c302
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@109abdb
+-edu.cwru.sepia.agent.planner.actions.MoveAction@f69db6a
+-edu.cwru.sepia.agent.planner.actions.DepositAction@63e8ffee
+-edu.cwru.sepia.agent.planner.actions.MoveAction@6476b942
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@286d9164
+-edu.cwru.sepia.agent.planner.actions.MoveAction@691ead88
+-edu.cwru.sepia.agent.planner.actions.DepositAction@4d2d28ca
+-edu.cwru.sepia.agent.planner.actions.MoveAction@1c402484
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@58e270d9
+-edu.cwru.sepia.agent.planner.actions.MoveAction@448ce4a0
+-edu.cwru.sepia.agent.planner.actions.DepositAction@6043ff83
+-edu.cwru.sepia.agent.planner.actions.MoveAction@7d3a830b
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@361540cd
+-edu.cwru.sepia.agent.planner.actions.MoveAction@159f1b4b
+-edu.cwru.sepia.agent.planner.actions.DepositAction@6adf519c
+-edu.cwru.sepia.agent.planner.actions.MoveAction@43d4a517
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@5fdb9688
+-edu.cwru.sepia.agent.planner.actions.MoveAction@32f39b7b
+-edu.cwru.sepia.agent.planner.actions.DepositAction@22307f08
+-edu.cwru.sepia.agent.planner.actions.MoveAction@442a8a44
+-edu.cwru.sepia.agent.planner.actions.HarvestAction@47c63b9f
+-edu.cwru.sepia.agent.planner.actions.MoveAction@6940485f
+-edu.cwru.sepia.agent.planner.actions.DepositAction@48a9b240
++edu.cwru.sepia.agent.planner.actions.MoveAction@ea061
++edu.cwru.sepia.agent.planner.actions.HarvestAction@2081b7e
++edu.cwru.sepia.agent.planner.actions.MoveAction@102687
++edu.cwru.sepia.agent.planner.actions.DepositAction@dd5ab98
++edu.cwru.sepia.agent.planner.actions.MoveAction@ebf21
++edu.cwru.sepia.agent.planner.actions.HarvestAction@662b1a84
++edu.cwru.sepia.agent.planner.actions.MoveAction@ebc3d
++edu.cwru.sepia.agent.planner.actions.DepositAction@6fd27761
++edu.cwru.sepia.agent.planner.actions.MoveAction@ec92e
++edu.cwru.sepia.agent.planner.actions.HarvestAction@2d43520e
++edu.cwru.sepia.agent.planner.actions.MoveAction@1027d8
++edu.cwru.sepia.agent.planner.actions.DepositAction@deaa555
++edu.cwru.sepia.agent.planner.actions.MoveAction@ebe0a
++edu.cwru.sepia.agent.planner.actions.HarvestAction@332b7156
++edu.cwru.sepia.agent.planner.actions.MoveAction@ebc34
++edu.cwru.sepia.agent.planner.actions.DepositAction@4f3e712d
++edu.cwru.sepia.agent.planner.actions.MoveAction@ee508
++edu.cwru.sepia.agent.planner.actions.HarvestAction@785a99e6
++edu.cwru.sepia.agent.planner.actions.MoveAction@1028be
++edu.cwru.sepia.agent.planner.actions.DepositAction@20425bb5
++edu.cwru.sepia.agent.planner.actions.MoveAction@ec92e
++edu.cwru.sepia.agent.planner.actions.HarvestAction@480b2f2a
++edu.cwru.sepia.agent.planner.actions.MoveAction@1027d8
++edu.cwru.sepia.agent.planner.actions.DepositAction@7480881f
++edu.cwru.sepia.agent.planner.actions.MoveAction@ec92e
++edu.cwru.sepia.agent.planner.actions.HarvestAction@58b9bac0
++edu.cwru.sepia.agent.planner.actions.MoveAction@1027d8
++edu.cwru.sepia.agent.planner.actions.DepositAction@6a94cd91
++edu.cwru.sepia.agent.planner.actions.MoveAction@ebe0a
++edu.cwru.sepia.agent.planner.actions.HarvestAction@7bf7cd96
++edu.cwru.sepia.agent.planner.actions.MoveAction@ebc34
++edu.cwru.sepia.agent.planner.actions.DepositAction@b477287
++edu.cwru.sepia.agent.planner.actions.MoveAction@ea002
++edu.cwru.sepia.agent.planner.actions.HarvestAction@1e3da695
++edu.cwru.sepia.agent.planner.actions.MoveAction@ebb3c
++edu.cwru.sepia.agent.planner.actions.DepositAction@52091886
++edu.cwru.sepia.agent.planner.actions.MoveAction@ebe0a
++edu.cwru.sepia.agent.planner.actions.HarvestAction@1757e42c
++edu.cwru.sepia.agent.planner.actions.MoveAction@ebc34
++edu.cwru.sepia.agent.planner.actions.DepositAction@27b47f0b
++edu.cwru.sepia.agent.planner.actions.MoveAction@ea0fa
++edu.cwru.sepia.agent.planner.actions.HarvestAction@544e7c66
++edu.cwru.sepia.agent.planner.actions.MoveAction@ebb44
++edu.cwru.sepia.agent.planner.actions.DepositAction@4e198341
++edu.cwru.sepia.agent.planner.actions.MoveAction@ee508
++edu.cwru.sepia.agent.planner.actions.HarvestAction@66c7782a
++edu.cwru.sepia.agent.planner.actions.MoveAction@1028be
++edu.cwru.sepia.agent.planner.actions.DepositAction@620f0fde
++edu.cwru.sepia.agent.planner.actions.MoveAction@ea002
++edu.cwru.sepia.agent.planner.actions.HarvestAction@4505e2b5
++edu.cwru.sepia.agent.planner.actions.MoveAction@ebb3c
++edu.cwru.sepia.agent.planner.actions.DepositAction@478472df
++edu.cwru.sepia.agent.planner.actions.MoveAction@ee508
++edu.cwru.sepia.agent.planner.actions.HarvestAction@1a5f542d
++edu.cwru.sepia.agent.planner.actions.MoveAction@1028be
++edu.cwru.sepia.agent.planner.actions.DepositAction@34c947
+diff --git a/saves/state0.SRTSsav b/saves/state0.SRTSsav
+index 1b2e819..c74d6fc 100644
+--- a/saves/state0.SRTSsav
++++ b/saves/state0.SRTSsav
+@@ -803,7 +803,7 @@
+         <xPosition>12</xPosition>
+         <yPosition>13</yPosition>
+         <initialAmount>0</initialAmount>
+-        <amountRemaining>300</amountRemaining>
++        <amountRemaining>100</amountRemaining>
+     </resourceNode>
+     <resourceNode>
+         <ID>7</ID>
+@@ -811,6 +811,14 @@
+         <xPosition>17</xPosition>
+         <yPosition>9</yPosition>
+         <initialAmount>0</initialAmount>
++        <amountRemaining>100</amountRemaining>
++    </resourceNode>
++    <resourceNode>
++        <ID>8</ID>
++        <type>TREE</type>
++        <xPosition>4</xPosition>
++        <yPosition>4</yPosition>
++        <initialAmount>0</initialAmount>
+         <amountRemaining>300</amountRemaining>
+     </resourceNode>
+     <resourceNode>
+@@ -819,6 +827,6 @@
+         <xPosition>12</xPosition>
+         <yPosition>4</yPosition>
+         <initialAmount>0</initialAmount>
+-        <amountRemaining>100</amountRemaining>
++        <amountRemaining>200</amountRemaining>
+     </resourceNode>
+ </state>
+diff --git a/src/edu/cwru/sepia/agent/planner/GameState.java b/src/edu/cwru/sepia/agent/planner/GameState.java
+index 353d632..83d912b 100644
+--- a/src/edu/cwru/sepia/agent/planner/GameState.java
++++ b/src/edu/cwru/sepia/agent/planner/GameState.java
+@@ -1,7 +1,6 @@
+ package edu.cwru.sepia.agent.planner;
+ 
+ import java.util.ArrayList;
+-import java.util.Collection;
+ import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+@@ -142,9 +141,7 @@ public class GameState implements Comparable<GameState> {
+ 	public double heuristic() {
+ 		double result = obtainedGold + obtainedWood + buildPeasantOffset;
+ 		for(Peasant peasant : this.peasants.values()){
+-			if(peasant.hasResource()){
+-				result++;
+-			}
++			result = result + peasant.getNumGold() + peasant.getNumWood();
+ 		}
+ 		return result;
+ 	}
+@@ -159,117 +156,119 @@ public class GameState implements Comparable<GameState> {
+ 	public double getCost() {
+ 		return plan.size();
+ 	}
+-
+-	/**
+-	 *
+-	 * @return A list of the possible successor states and their associated actions
+-	 */
+-	public List<GameState> generateChildren() {
++	
++	
++	public List<GameState> generateChildren(){
+ 		List<GameState> children = new ArrayList<GameState>();
+-		children.addAll(generateBuildActionChildren());
+-		if(children.size() == 0){
+-			children.addAll(generateMoveActionChildren());
+-			children.addAll(generateHarvestActionChildren());
+-			children.addAll(generateDepositActionChildren());
++		List<MoveAction> moveActions = generatePossibleMoveActions();
++		List<HarvestAction> harvestActions = generatePossibleHarvestActions();
++		List<DepositAction> depositActions = generatePossibleDepositActions();
++		List<BuildAction> buildActions = generatePossibleBuildActions();
++		List<StripsAction> actions = new ArrayList<StripsAction>();
++		actions.addAll(buildActions);
++		actions.addAll(harvestActions);		
++		actions.addAll(depositActions);
++		actions.addAll(moveActions);
++		
++		for(StripsAction action : actions){
++			GameState child = new GameState(this);
++			action.apply(child);
++			children.add(child);
+ 		}
++//
++//		if(moveActions.get(0).isEmpty()){
++//			GameState child = new GameState(this);
++//			for(StripsAction action : actions){
++//				action.apply(child);
++//			}
++//			children.add(child);
++//		} else {
++//			for(int i = 0; i < moveActions.get(0).size(); i++){
++//				GameState child = new GameState(this);
++//				moveActions.get(0).get(i).apply(child);
++//				if(moveActions.size() > 1){
++//					moveActions.get(1).get(i).apply(child);
++//				} 
++//				if(moveActions.size() > 2){
++//					moveActions.get(2).get(i).apply(child);
++//				}
++//				children.add(child);
++//			}
++//		}
++//		
++//		for(StripsAction build : buildActions){
++//			GameState child = new GameState(this);
++//			build.apply(child);
++//			children.add(child);
++//		}
++//		
++//		for(Peasant peasant : this.peasants.values()){
++//			
++//		}
++//		
++		
+ 		return children;
+ 	}
+-	
+-	private Collection<? extends GameState> generateBuildActionChildren() {
+-		List<GameState> children = new ArrayList<GameState>();
++
++	private List<BuildAction> generatePossibleBuildActions() {
++		List<BuildAction> actions = new ArrayList<BuildAction>();
+ 		if(buildPeasants && this.canBuild()){
+-			GameState child = new GameState(this);
+ 			BuildAction action = new BuildAction(townHallId, PEASANT_TEMPLATE_ID);
+-			if(action.preconditionsMet(child)){
+-				action.apply(child);
+-				children.add(child);
++			actions.add(action);
++		}
++		return actions;
++	}
++
++	private List<DepositAction> generatePossibleDepositActions() {
++		List<DepositAction> actions = new ArrayList<DepositAction>();
++		for(Peasant peasant : this.peasants.values()){
++			if(peasant.hasResource() && peasant.getPosition().isAdjacent(TOWN_HALL_POSITION)){
++				DepositAction action = new DepositAction(peasant);
++				actions.add(action);
+ 			}
+ 		}
+-		return children;
++		return actions;
+ 	}
+ 
+-	private Collection<? extends GameState> generateMoveActionChildren() {
+-		List<GameState> children = new ArrayList<GameState>();
++	private List<MoveAction> generatePossibleMoveActions() {
++		List<MoveAction> actions = new ArrayList<MoveAction>();
+ 		List<Peasant> peasantList = new ArrayList<Peasant>(this.peasants.values());
+ 		for(int i = 0; i < peasantList.size(); i++){
+-			Peasant firstPeasant = peasantList.get(i);
+-			if(!firstPeasant.hasResource()){
+-				if(!peasantCanHarvest(firstPeasant)){
+-					for(Resource firstResource : this.resources.values()){
+-						if(firstResource.getAmountLeft() >= MAX_RESOURCE_AMOUNT_TO_TAKE){
+-							if((firstResource.isGold() && obtainedGold < requiredGold) || (firstResource.isWood() && obtainedWood < requiredWood)){
+-								GameState child = new GameState(this);
+-								List<Position> firstAdjacentList = firstResource.getPosition().getAdjacentPositions();
+-								MoveAction firstAction = new MoveAction(firstPeasant, firstAdjacentList.get(i));
+-								if(firstAction.preconditionsMet(child)){
+-									firstAction.apply(child);
+-									for(int j = 0; j < peasantList.size(); j++){
+-										if(i != j){
+-											Peasant secondPeasant = peasantList.get(j);
+-											if(secondPeasant.hasResource() && !peasantCanHarvest(secondPeasant)){
+-												for(Resource secondResource : this.resources.values()){
+-													if(	secondResource.getAmountLeft() >= MAX_RESOURCE_AMOUNT_TO_TAKE &&
+-															((firstResource.isGold() && obtainedGold < requiredGold) || 
+-															(firstResource.isWood() && obtainedWood < requiredWood))){
+-														List<Position> secondAdjacentList = secondResource.getPosition().getAdjacentPositions();
+-														MoveAction secondAction = new MoveAction(secondPeasant, secondAdjacentList.get(i));
+-														if(secondAction.preconditionsMet(child)){
+-															secondAction.apply(child);
+-														}
+-													}
+-												}
+-											}
+-										}
+-									}
+-									children.add(child);
+-								}
+-							}
++			Peasant peasant = peasantList.get(i);
++			if(!peasant.hasResource()){
++				if(!peasantCanHarvest(peasant)){
++					for(Resource resource : this.resources.values()){
++						if(resource.getAmountLeft() >= MAX_RESOURCE_AMOUNT_TO_TAKE && ((resource.isGold() && obtainedGold < requiredGold) || (resource.isWood() && obtainedWood < requiredWood))){
++							List<Position> adjacentList = resource.getPosition().getAdjacentPositions();
++							MoveAction firstAction = new MoveAction(peasant, adjacentList.get(i));
++							actions.add(firstAction);
+ 						}
+ 					}
+ 				}
+ 			} else {
+-				GameState child = new GameState(this);
+-				MoveAction action = new MoveAction(firstPeasant, TOWN_HALL_POSITION.getAdjacentPositions().get(i));
+-				if(action.preconditionsMet(child)){
+-					action.apply(child);
+-					children.add(child);
+-				}
++				MoveAction action = new MoveAction(peasant, TOWN_HALL_POSITION.getAdjacentPositions().get(i));
++				actions.add(action);
+ 			}
+ 		}
+-		return children;
++		return actions;
+ 	}
+-
+-	private Collection<? extends GameState> generateHarvestActionChildren() {
+-		List<GameState> children = new ArrayList<GameState>();
++	
++	private List<HarvestAction> generatePossibleHarvestActions() {
++		List<HarvestAction> actions = new ArrayList<HarvestAction>();
+ 		for(Peasant peasant : this.peasants.values()){
+ 			if(!peasant.hasResource()){
+ 				for(Resource resource : this.resources.values()){
+-					GameState child = new GameState(this);
+-					HarvestAction action = new HarvestAction(peasant, resource);
+-					if(action.preconditionsMet(child)){
+-						action.apply(child);
+-						children.add(child);
++					if(resource.hasRemaining() && peasant.getPosition().isAdjacent(resource.getPosition())){
++						HarvestAction action = new HarvestAction(peasant, resource);
++						actions.add(action);
+ 					}
+ 				}
+ 			}
+ 		}
+-		return children;
++		return actions;
+ 	}
+ 	
+-	private Collection<? extends GameState> generateDepositActionChildren(){
+-		List<GameState> children = new ArrayList<GameState>();
+-		for(Peasant peasant : this.peasants.values()){
+-			if(peasant.hasResource() && peasant.getPosition().isAdjacent(TOWN_HALL_POSITION)){
+-				GameState child = new GameState(this);
+-				DepositAction action = new DepositAction(peasant);
+-				if(action.preconditionsMet(child)){
+-					action.apply(child);
+-					children.add(child);
+-				}
+-			}
+-		}
+-		return children;
+-	}
++	
+ 
+ 	public void applyBuildAction(StripsAction action) {
+ 		this.obtainedGold = this.obtainedGold - REQUIRED_GOLD_TO_BUILD;
+@@ -330,6 +329,7 @@ public class GameState implements Comparable<GameState> {
+ 		return 0;
+ 	}
+ 
++
+ 	@Override
+ 	public int hashCode() {
+ 		final int prime = 31;
+@@ -363,4 +363,5 @@ public class GameState implements Comparable<GameState> {
+ 			return false;
+ 		return true;
+ 	}
++
+ }
+diff --git a/src/edu/cwru/sepia/agent/planner/PEAgent.java b/src/edu/cwru/sepia/agent/planner/PEAgent.java
+index 25ad603..5b8fb75 100644
+--- a/src/edu/cwru/sepia/agent/planner/PEAgent.java
++++ b/src/edu/cwru/sepia/agent/planner/PEAgent.java
+@@ -75,11 +75,6 @@ public class PEAgent extends Agent {
+     	}
+     	
+ 		Map<Integer, ActionResult> previousActions = historyView.getCommandFeedback(playernum, previousTurnNumber);
+-//		for(ActionResult previousAction : previousActions.values()){ 
+-//			if(previousAction.getFeedback() != ActionFeedback.INCOMPLETE){
+-//				addNextAction(actionMap);
+-//			}
+-//		}
+ 		
+ 		boolean done = false;
+ 		while(!done){
+diff --git a/src/edu/cwru/sepia/agent/planner/actions/MoveAction.java b/src/edu/cwru/sepia/agent/planner/actions/MoveAction.java
+index 13e803e..d931086 100644
+--- a/src/edu/cwru/sepia/agent/planner/actions/MoveAction.java
++++ b/src/edu/cwru/sepia/agent/planner/actions/MoveAction.java
+@@ -35,4 +35,37 @@ public class MoveAction implements StripsAction {
+ 		return peasant.getId();	
+ 	}
+ 
++	@Override
++	public int hashCode() {
++		final int prime = 31;
++		int result = 1;
++		result = prime * result + ((destination == null) ? 0 : destination.hashCode());
++		result = prime * result + ((peasant == null) ? 0 : peasant.hashCode());
++		return result;
++	}
++
++	@Override
++	public boolean equals(Object obj) {
++		if (this == obj)
++			return true;
++		if (obj == null)
++			return false;
++		if (getClass() != obj.getClass())
++			return false;
++		MoveAction other = (MoveAction) obj;
++		if (destination == null) {
++			if (other.destination != null)
++				return false;
++		} else if (!destination.equals(other.destination))
++			return false;
++		if (peasant == null) {
++			if (other.peasant != null)
++				return false;
++		} else if (!peasant.equals(other.peasant))
++			return false;
++		return true;
++	}
++	
++	
++
+ }

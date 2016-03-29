@@ -1,7 +1,6 @@
 package edu.cwru.sepia.agent.planner;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +16,7 @@ import edu.cwru.sepia.environment.model.state.State;
 public class GameState implements Comparable<GameState> {
 	public static int PEASANT_TEMPLATE_ID;
 	public static Position TOWN_HALL_POSITION;
-	
+
 	private static final String TOWNHALL_NAME = "townhall";
 	private static final String GOLD_RESOURCE_NAME = "GOLD_MINE";
 	private static final int MAX_RESOURCE_AMOUNT_TO_TAKE = 100;
@@ -28,13 +27,13 @@ public class GameState implements Comparable<GameState> {
 	private static int requiredWood;
 	private static int townHallId;
 	private static boolean buildPeasants = false;
-	
+
 	private int obtainedGold = 0;
 	private int obtainedWood = 0;
-	
+
 	private int nextId = 0;
 	private int buildPeasantOffset = 0;
-	
+
 	private Map<Integer, Peasant> peasants = new HashMap<Integer, Peasant>(3);
 	private Map<Integer, Resource> resources = new HashMap<Integer, Resource>(7);
 	private static Map<Integer, Position> occupied = new HashMap<Integer, Position>();
@@ -74,7 +73,7 @@ public class GameState implements Comparable<GameState> {
 		});
 		this.nextId = 1 + this.peasants.size() + this.resources.size();
 	}
-	
+
 	public GameState(GameState state){
 		this.obtainedGold = state.obtainedGold;
 		this.obtainedWood = state.obtainedWood;
@@ -90,19 +89,19 @@ public class GameState implements Comparable<GameState> {
 		});	
 		state.plan.stream().forEach(e -> plan.add(e));
 	}
-	
+
 	public Peasant getPeasantWithId(int peasantId){
 		return this.peasants.get(peasantId);
 	}
-	
+
 	public Resource getResourceWithId(int resourceId){
 		return this.resources.get(resourceId);
 	}
-	
+
 	public boolean canBuild() {
 		return obtainedGold >= REQUIRED_GOLD_TO_BUILD && this.peasants.size() < MAX_NUM_PEASANTS;
 	}
-	
+
 	private boolean peasantCanHarvest(Peasant peasant) {
 		return peasant.getPosition().getAdjacentPositions().stream().anyMatch(e -> this.isResourceLocation(e));		
 	}
@@ -114,7 +113,7 @@ public class GameState implements Comparable<GameState> {
 	public boolean isOccupied(Position destination) {
 		return occupied.containsKey(destination.hashCode()) && this.peasants.values().stream().anyMatch(e -> e.getPosition().equals(destination));
 	}
-	
+
 	public Stack<StripsAction> getPlan(){
 		Stack<StripsAction> plan = new Stack<StripsAction>();
 		for(int i = this.plan.size() - 1; i > -1; i--){
@@ -130,7 +129,7 @@ public class GameState implements Comparable<GameState> {
 	public boolean isGoal() {
 		return obtainedGold >= requiredGold && obtainedWood >= requiredWood;
 	}
-	
+
 	/**
 	 * Write your heuristic function here. Remember this must be admissible for the properties of A* to hold. If you
 	 * can come up with an easy way of computing a consistent heuristic that is even better, but not strictly necessary.
@@ -160,114 +159,66 @@ public class GameState implements Comparable<GameState> {
 		return plan.size();
 	}
 
-	/**
-	 *
-	 * @return A list of the possible successor states and their associated actions
-	 */
+
 	public List<GameState> generateChildren() {
 		List<GameState> children = new ArrayList<GameState>();
-		children.addAll(generateBuildActionChildren());
-		if(children.size() == 0){
-			children.addAll(generateMoveActionChildren());
-			children.addAll(generateHarvestActionChildren());
-			children.addAll(generateDepositActionChildren());
-		}
-		return children;
-	}
-	
-	private Collection<? extends GameState> generateBuildActionChildren() {
-		List<GameState> children = new ArrayList<GameState>();
 		if(buildPeasants && this.canBuild()){
-			GameState child = new GameState(this);
+			GameState buildChild = new GameState(this);
 			BuildAction action = new BuildAction(townHallId, PEASANT_TEMPLATE_ID);
-			if(action.preconditionsMet(child)){
-				action.apply(child);
-				children.add(child);
+			if(action.preconditionsMet(buildChild)){
+				action.apply(buildChild);
+				children.add(buildChild);
 			}
+			return children;
 		}
-		return children;
-	}
 
-	private Collection<? extends GameState> generateMoveActionChildren() {
-		List<GameState> children = new ArrayList<GameState>();
+		GameState child = new GameState(this);
 		List<Peasant> peasantList = new ArrayList<Peasant>(this.peasants.values());
-		for(int i = 0; i < peasantList.size(); i++){
-			Peasant firstPeasant = peasantList.get(i);
-			if(!firstPeasant.hasResource()){
-				if(!peasantCanHarvest(firstPeasant)){
-					for(Resource firstResource : this.resources.values()){
-						if(firstResource.getAmountLeft() >= MAX_RESOURCE_AMOUNT_TO_TAKE){
-							if((firstResource.isGold() && obtainedGold < requiredGold) || (firstResource.isWood() && obtainedWood < requiredWood)){
-								GameState child = new GameState(this);
-								List<Position> firstAdjacentList = firstResource.getPosition().getAdjacentPositions();
-								MoveAction firstAction = new MoveAction(firstPeasant, firstAdjacentList.get(i));
-								if(firstAction.preconditionsMet(child)){
-									firstAction.apply(child);
-									for(int j = 0; j < peasantList.size(); j++){
-										if(i != j){
-											Peasant secondPeasant = peasantList.get(j);
-											if(secondPeasant.hasResource() && !peasantCanHarvest(secondPeasant)){
-												for(Resource secondResource : this.resources.values()){
-													if(	secondResource.getAmountLeft() >= MAX_RESOURCE_AMOUNT_TO_TAKE &&
-															((firstResource.isGold() && obtainedGold < requiredGold) || 
-															(firstResource.isWood() && obtainedWood < requiredWood))){
-														List<Position> secondAdjacentList = secondResource.getPosition().getAdjacentPositions();
-														MoveAction secondAction = new MoveAction(secondPeasant, secondAdjacentList.get(i));
-														if(secondAction.preconditionsMet(child)){
-															secondAction.apply(child);
-														}
-													}
-												}
-											}
-										}
+		for(int i = 0; i < this.peasants.size(); i++){
+			Peasant peasant = peasantList.get(i);
+			if(peasant.hasResource()){
+				if(peasant.getPosition().isAdjacent(TOWN_HALL_POSITION)){
+					DepositAction action = new DepositAction(peasant);
+					action.apply(child);
+				} else {
+					MoveAction action = new MoveAction(peasant, TOWN_HALL_POSITION.getAdjacentPositions().get(i));
+					if(action.preconditionsMet(child)){
+						action.apply(child);
+					}
+				}
+			} else if(peasantCanHarvest(peasant)){
+				for(Resource resource : this.resources.values()){
+					HarvestAction action = new HarvestAction(peasant, resource);
+					if(action.preconditionsMet(child)){
+						action.apply(child);
+					}
+				}
+			} else {
+				for(Resource resource : this.resources.values()){
+					GameState innerChild = new GameState(child);
+					List<Position> adjacentList = resource.getPosition().getAdjacentPositions();
+					MoveAction action = new MoveAction(peasant, adjacentList.get(i));
+					if(action.preconditionsMet(innerChild)){
+						action.apply(innerChild);
+					}
+					for(int j = 0; j < this.peasants.size(); j++){
+						if(i != j){
+							Peasant other = peasantList.get(j);
+							if(!other.hasResource() && !peasantCanHarvest(peasant)){
+								if(resource.getAmountLeft() >= MAX_RESOURCE_AMOUNT_TO_TAKE * 2){
+									MoveAction otherAction = new MoveAction(other, adjacentList.get(j));
+									if(otherAction.preconditionsMet(innerChild)){
+										otherAction.apply(innerChild);
 									}
-									children.add(child);
 								}
 							}
 						}
 					}
-				}
-			} else {
-				GameState child = new GameState(this);
-				MoveAction action = new MoveAction(firstPeasant, TOWN_HALL_POSITION.getAdjacentPositions().get(i));
-				if(action.preconditionsMet(child)){
-					action.apply(child);
-					children.add(child);
+					children.add(innerChild);
 				}
 			}
 		}
-		return children;
-	}
-
-	private Collection<? extends GameState> generateHarvestActionChildren() {
-		List<GameState> children = new ArrayList<GameState>();
-		for(Peasant peasant : this.peasants.values()){
-			if(!peasant.hasResource()){
-				for(Resource resource : this.resources.values()){
-					GameState child = new GameState(this);
-					HarvestAction action = new HarvestAction(peasant, resource);
-					if(action.preconditionsMet(child)){
-						action.apply(child);
-						children.add(child);
-					}
-				}
-			}
-		}
-		return children;
-	}
-	
-	private Collection<? extends GameState> generateDepositActionChildren(){
-		List<GameState> children = new ArrayList<GameState>();
-		for(Peasant peasant : this.peasants.values()){
-			if(peasant.hasResource() && peasant.getPosition().isAdjacent(TOWN_HALL_POSITION)){
-				GameState child = new GameState(this);
-				DepositAction action = new DepositAction(peasant);
-				if(action.preconditionsMet(child)){
-					action.apply(child);
-					children.add(child);
-				}
-			}
-		}
+		children.add(child);
 		return children;
 	}
 
@@ -284,12 +235,12 @@ public class GameState implements Comparable<GameState> {
 		this.buildPeasantOffset = this.buildPeasantOffset + BUILD_PESANT_OFFSET;
 		plan.add(action);
 	}
-	
+
 	public void applyMoveAction(StripsAction action, int peasantId, Position destination) {
-        getPeasantWithId(peasantId).setPosition(destination);
+		getPeasantWithId(peasantId).setPosition(destination);
 		plan.add(action);
 	}
-	
+
 	public void applyHarvestAction(StripsAction action, int peasantId, int resourceId) {
 		Resource resource = getResourceWithId(resourceId);
 		Peasant peasant = getPeasantWithId(peasantId);
@@ -314,7 +265,7 @@ public class GameState implements Comparable<GameState> {
 		}
 		plan.add(action);
 	}
-	
+
 	/**
 	 *
 	 * @param o The other game state to compare

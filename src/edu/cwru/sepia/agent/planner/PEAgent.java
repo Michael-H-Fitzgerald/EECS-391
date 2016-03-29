@@ -74,29 +74,40 @@ public class PEAgent extends Agent {
     		return actionMap;
     	}
     	
-		Map<Integer, ActionResult> previousActions = historyView.getCommandFeedback(playernum, previousTurnNumber);
-//		for(ActionResult previousAction : previousActions.values()){ 
-//			if(previousAction.getFeedback() != ActionFeedback.INCOMPLETE){
+    	
+    	
+		Map<Integer, ActionResult> previousActions = historyView.getCommandFeedback(playernum, previousTurnNumber);	
+//		for( ActionResult last : previousActions.values()){
+//			if(last.getFeedback().ordinal() != ActionFeedback.INCOMPLETE.ordinal()){
 //				addNextAction(actionMap);
 //			}
 //		}
-		
 		boolean done = false;
 		while(!done){
 			if(plan.empty()){
 				done = true;
 			} else {
 				StripsAction next = plan.peek();
-				ActionResult previous = previousActions.get(next.getPeasantId()); 
-				if(actionMap.containsKey(next.getPeasantId()) || (previous != null && previous.getFeedback() == ActionFeedback.INCOMPLETE)){
+				ActionResult previous = previousActions.get(next.getPeasantId());
+				if(actionMap.containsKey(0)){
+					done = true; // Do the building on its own turn
+				}
+				if(actionMap.containsKey(next.getPeasantId()) || (previous != null && previous.getFeedback().ordinal() != ActionFeedback.COMPLETED.ordinal())){
 					done = true;
 				} else {
-					addNextAction(actionMap);
+					if(next.getPeasantId() == 0 && !actionMap.isEmpty()){ 
+						done = true;// Wait a turn to do the building
+					} else {
+						addNextAction(actionMap);
+					}
 				}
 			}
 		}
 		
-		System.out.println("Number of Actions in map: " + actionMap.values().size());
+		for( Action action : actionMap.values()){
+			System.out.print(action.getUnitId() + ": " + action.getType().name() + " - ");
+		}
+		System.out.print("\n");
     	return actionMap;
     }
 
