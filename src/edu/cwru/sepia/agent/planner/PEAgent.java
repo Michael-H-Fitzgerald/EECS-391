@@ -13,7 +13,6 @@ import edu.cwru.sepia.agent.Agent;
 import edu.cwru.sepia.agent.planner.actions.StripsAction;
 import edu.cwru.sepia.environment.model.history.History;
 import edu.cwru.sepia.environment.model.state.State;
-import edu.cwru.sepia.environment.model.state.Template;
 import edu.cwru.sepia.environment.model.state.Unit;
 
 /**
@@ -22,40 +21,22 @@ import edu.cwru.sepia.environment.model.state.Unit;
 public class PEAgent extends Agent {
 	private static final long serialVersionUID = 1L;
 
-	// The plan being executed
     private Stack<StripsAction> plan = null;
-
-    // maps the real unit Ids to the plan's unit ids
-    // when you're planning you won't know the true unit IDs that sepia assigns. So you'll use placeholders (1, 2, 3).
-    // this maps those placeholders to the actual unit IDs.
-    private Map<Integer, Integer> peasantIdMap;
-    private int townhallId;
-    private int peasantTemplateId;
+    private int peasantCount;
 
     public PEAgent(int playernum, Stack<StripsAction> plan) {
         super(playernum);
-        peasantIdMap = new HashMap<Integer, Integer>();
+        peasantCount = 0;
         this.plan = plan;
     }
 
     @Override
     public Map<Integer, Action> initialStep(State.StateView stateView, History.HistoryView historyView) {
-        // gets the townhall ID and the peasant ID
         for(int unitId : stateView.getUnitIds(playernum)) {
             Unit.UnitView unit = stateView.getUnit(unitId);
             String unitType = unit.getTemplateView().getName().toLowerCase();
-            if(unitType.equals("townhall")) {
-                townhallId = unitId;
-            } else if(unitType.equals("peasant")) {
-                peasantIdMap.put(unitId, unitId);
-            }
-        }
-
-        // Gets the peasant template ID. This is used when building a new peasant with the townhall
-        for(Template.TemplateView templateView : stateView.getTemplates(playernum)) {
-            if(templateView.getName().toLowerCase().equals("peasant")) {
-                peasantTemplateId = templateView.getID();
-                break;
+            if(unitType.equals("peasant")) {
+            	peasantCount++;
             }
         }
 
@@ -87,24 +68,44 @@ public class PEAgent extends Agent {
     	
     	int previousTurnNumber = stateView.getTurnNumber() - 1;
     	if(previousTurnNumber < 0) {
-    		for(int i = 0; i < this.peasantIdMap.size(); i++){
+    		for(int i = 0; i < this.peasantCount; i++){
     			addNextAction(actionMap);
     		}
     		return actionMap;
     	}
     	
 		Map<Integer, ActionResult> previousActions = historyView.getCommandFeedback(playernum, previousTurnNumber);
-		for(ActionResult previousAction : previousActions.values()){ 
-			if(previousAction.getFeedback() != ActionFeedback.INCOMPLETE){
-				addNextAction(actionMap);		
+//		for(ActionResult previousAction : previousActions.values()){ 
+//			if(previousAction.getFeedback() != ActionFeedback.INCOMPLETE){
+//				addNextAction(actionMap);
+//			}
+//		}
+		
+		boolean done = false;
+		while(!done){
+			if(plan.empty()){
+				done = true;
+			} else {
+				StripsAction next = plan.peek();
+				ActionResult previous = previousActions.get(next.getPeasantId()); 
+				if(actionMap.containsKey(next.getPeasantId()) || (previous != null && previous.getFeedback() == ActionFeedback.INCOMPLETE)){
+					done = true;
+				} else {
+					addNextAction(actionMap);
+				}
 			}
 		}
+		
+		System.out.println("Number of Actions in map: " + actionMap.values().size());
     	return actionMap;
     }
 
     private void addNextAction(Map<Integer, Action> actionMap) {
     	StripsAction action = plan.pop();   
 		actionMap.put(action.getPeasantId(), action.createSepiaAction());
+		if(action.createSepiaAction().getType().name().equals("PRIMITIVEPRODUCE")){		
+			peasantCount++;
+		}
 	}
 
 	@Override

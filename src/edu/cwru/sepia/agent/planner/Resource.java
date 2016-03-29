@@ -31,4 +31,5 @@ public abstract class Resource {
 	public boolean hasRemaining() {
 		return amountLeft > 0;
 	}
+	
 }

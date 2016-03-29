@@ -142,7 +142,8 @@ public class PlannerAgent extends Agent {
      *
      * @param plan Stack of Strips Actions that are written to the text file.
      */
-    private void savePlan(Stack<StripsAction> plan) {
+    @SuppressWarnings("unchecked")
+	private void savePlan(Stack<StripsAction> plan) {
         if (plan == null) {
             System.err.println("Cannot save null plan");
             return;
