@@ -20,24 +20,27 @@ import edu.cwru.sepia.environment.model.state.Unit.UnitView;
  * This is an outline of the PEAgent. Implement the provided methods. You may add your own methods and members.
  */
 public class PEAgent extends Agent {
+	private static final String TOWN_HALL_NAME = "townhall";
+
 	private static final long serialVersionUID = 1L;
 
     private Stack<StripsAction> plan = null;
-    private int peasantCount;
+    private int TOWN_HALL_ID;
 
     public PEAgent(int playernum, Stack<StripsAction> plan) {
         super(playernum);
-        peasantCount = 0;
         this.plan = plan;
     }
 
     @Override
     public Map<Integer, Action> initialStep(State.StateView stateView, History.HistoryView historyView) {
+    	
+        // gets the townhall ID and the peasant ID
         for(int unitId : stateView.getUnitIds(playernum)) {
             Unit.UnitView unit = stateView.getUnit(unitId);
             String unitType = unit.getTemplateView().getName().toLowerCase();
-            if(unitType.equals("peasant")) {
-            	peasantCount++;
+            if(unitType.equals(TOWN_HALL_NAME)) {
+                TOWN_HALL_ID = unitId;
             }
         }
 
@@ -68,68 +71,55 @@ public class PEAgent extends Agent {
     	}
     	
     	int previousTurnNumber = stateView.getTurnNumber() - 1;
+    	
     	if(previousTurnNumber < 0) {
-    		for(int i = 0; i < this.peasantCount; i++){
-    			addNextAction(actionMap, stateView);
-    		}
+        	// It is the first turn initialize this assumes there is 
+    		// only one peasant at start and so only adds one action
+    		addNextAction(actionMap, stateView);
     		return actionMap;
     	}
-    	
-    	
-    	
+
 		Map<Integer, ActionResult> previousActions = historyView.getCommandFeedback(playernum, previousTurnNumber);	
-//		for( ActionResult last : previousActions.values()){
-//			if(last.getFeedback().ordinal() != ActionFeedback.INCOMPLETE.ordinal()){
-//				addNextAction(actionMap);
-//			}
-//		}
 		boolean done = false;
 		while(!done){
 			if(plan.empty()){
 				done = true;
 			} else {
 				StripsAction next = plan.peek();
-				ActionResult previous = previousActions.get(next.getPeasantId());
+				ActionResult previous = previousActions.get(next.getUnitId());
 				if(previous != null && previous.getFeedback() == ActionFeedback.FAILED){
 					actionMap.put(previous.getAction().getUnitId(), previous.getAction());
 				}
-				if(actionMap.containsKey(0)){
-					done = true; // Do the building on its own turn
+				if(actionMap.containsKey(TOWN_HALL_ID)){
+					// If we are building don't add the next action
+					done = true;
 				}
-				if(actionMap.containsKey(next.getPeasantId()) || (previous != null && previous.getFeedback().ordinal() == ActionFeedback.INCOMPLETE.ordinal())){
+				if(actionMap.containsKey(next.getUnitId()) || (previous != null && previous.getFeedback().ordinal() == ActionFeedback.INCOMPLETE.ordinal())){
 					done = true;
 				} else {
-					if(next.getPeasantId() == 0 && !actionMap.isEmpty()){ 
-						done = true;// Wait a turn to do the building
+					if(next.getUnitId() == TOWN_HALL_ID && !actionMap.isEmpty()){ 
+						done = true; // Wait a turn to do the building
 					} else {
 						addNextAction(actionMap, stateView);
 					}
 				}
 			}
 		}
-		
-		for( Action action : actionMap.values()){
-			System.out.print(action.getUnitId() + ": " + action.getType().name() + " - ");
-		}
-		System.out.print("\n");
     	return actionMap;
     }
 
     private void addNextAction(Map<Integer, Action> actionMap, State.StateView state) {
     	StripsAction action = plan.pop();
     	Action sepiaAction = null;
-    	if(!action.needsDirection()){
+    	if(!action.isDirectedAction()){
     		sepiaAction = action.createSepiaAction(null);
     	} else {
-    		UnitView peasant = state.getUnit(action.getPeasantId());
+    		UnitView peasant = state.getUnit(action.getUnitId());
     		Position peasantPos = new Position(peasant.getXPosition(), peasant.getYPosition());
-    		Position destinationPos = action.targetPosition();
+    		Position destinationPos = action.getPositionForDirection();
     		sepiaAction = action.createSepiaAction(peasantPos.getDirection(destinationPos));
     	}
 		actionMap.put(sepiaAction.getUnitId(), sepiaAction);
-		if(sepiaAction.getType().name().equals("PRIMITIVEPRODUCE")){		
-			peasantCount++;
-		}
 	}
     
 	@Override

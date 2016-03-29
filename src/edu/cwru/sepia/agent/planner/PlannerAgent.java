@@ -27,7 +27,6 @@ public class PlannerAgent extends Agent {
     final int requiredGold;
     final boolean buildPeasants;
 
-    // Your PEAgent implementation. This prevents you from having to parse the text file representation of your plan.
     PEAgent peAgent;
 
     public PlannerAgent(int playernum, String[] params) {
@@ -97,8 +96,7 @@ public class PlannerAgent extends Agent {
      *
      * @param startState The state which is being planned from
      * @return The plan or null if no plan is found.
-     */
-    private int count = 0;
+     */    
     private Stack<StripsAction> AstarSearch(GameState startState) {
     	PriorityQueue<GameState> frontierQueue = new PriorityQueue<GameState>();
 		Set<GameState> frontierSet = new HashSet<GameState>();
@@ -118,9 +116,7 @@ public class PlannerAgent extends Agent {
 							frontierQueue.add(e);
 							frontierSet.add(e);
 						} else {
-							// Replace with node with better plan.
-							count++;
-							//System.out.println("replaced node " + count + " times.");
+							// Update node's path						
 							frontierQueue.remove(e);
 							frontierQueue.add(e);
 							frontierSet.remove(e);

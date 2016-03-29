@@ -30,12 +30,12 @@ public class DepositAction implements StripsAction {
 	}
 
 	@Override
-	public boolean needsDirection(){
+	public boolean isDirectedAction(){
 		return true;
 	}
 	
 	@Override
-	public Position targetPosition(){
+	public Position getPositionForDirection(){
 		return townHallPos;
 	}
 	
@@ -45,7 +45,7 @@ public class DepositAction implements StripsAction {
 	}
 	
 	@Override
-	public int getPeasantId() {
+	public int getUnitId() {
 		return peasantId;	
 	}
 

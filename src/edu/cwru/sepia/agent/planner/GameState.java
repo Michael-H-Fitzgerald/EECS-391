@@ -36,7 +36,7 @@ public class GameState implements Comparable<GameState> {
 
 	private Map<Integer, Peasant> peasants = new HashMap<Integer, Peasant>(3);
 	private Map<Integer, Resource> resources = new HashMap<Integer, Resource>(7);
-	private static Map<Integer, Position> occupied = new HashMap<Integer, Position>();
+	private static Map<Integer, Position> resourcePositions = new HashMap<Integer, Position>();
 	private List<StripsAction> plan = new ArrayList<StripsAction>();
 
 	/**
@@ -53,7 +53,7 @@ public class GameState implements Comparable<GameState> {
 		GameState.buildPeasants = buildPeasants;
 		state.getAllResourceNodes().stream().forEach(e -> {
 			Position position = new Position(e.getXPosition(), e.getYPosition());
-			occupied.put(position.hashCode(), position);
+			resourcePositions.put(position.hashCode(), position);
 			if(e.getType().name().equals(GOLD_RESOURCE_NAME)){
 				resources.put(e.getID(), new Gold(e.getID(), e.getAmountRemaining(), position));
 			} else {
@@ -62,7 +62,6 @@ public class GameState implements Comparable<GameState> {
 		});
 		state.getAllUnits().stream().forEach(e -> {
 			Position position = new Position(e.getXPosition(), e.getYPosition());
-			occupied.put(position.hashCode(), position);
 			if(e.getTemplateView().getName().toLowerCase().equals(TOWNHALL_NAME)){
 				GameState.TOWN_HALL_POSITION = position;
 				GameState.townHallId = e.getID();
@@ -107,6 +106,7 @@ public class GameState implements Comparable<GameState> {
 	}
 
 	private boolean isResourceLocation(Position destination) { 
+		//return GameState.resourcePositions.containsKey(destination.hashCode());
 		return this.resources.values().stream().anyMatch(e -> e.getPosition().equals(destination)); // TODO reoptimize
 	}
 

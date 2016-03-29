@@ -32,7 +32,7 @@ public class MoveAction implements StripsAction {
 	}
 
 	@Override
-	public int getPeasantId() {
+	public int getUnitId() {
 		return peasant.getId();	
 	}
 
