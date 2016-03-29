@@ -2,6 +2,7 @@ package edu.cwru.sepia.agent.planner.actions;
 
 import edu.cwru.sepia.action.Action;
 import edu.cwru.sepia.agent.planner.GameState;
+import edu.cwru.sepia.util.Direction;
 
 public class BuildAction implements StripsAction {
 	int townhallId;
@@ -24,7 +25,7 @@ public class BuildAction implements StripsAction {
 	}
 
 	@Override
-	public Action createSepiaAction() {
+	public Action createSepiaAction(Direction direction) {
 		return Action.createPrimitiveProduction(townhallId, peasantTemplateId);
 	}
 	

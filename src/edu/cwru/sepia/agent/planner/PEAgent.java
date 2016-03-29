@@ -14,6 +14,7 @@ import edu.cwru.sepia.agent.planner.actions.StripsAction;
 import edu.cwru.sepia.environment.model.history.History;
 import edu.cwru.sepia.environment.model.state.State;
 import edu.cwru.sepia.environment.model.state.Unit;
+import edu.cwru.sepia.environment.model.state.Unit.UnitView;
 
 /**
  * This is an outline of the PEAgent. Implement the provided methods. You may add your own methods and members.
@@ -69,7 +70,7 @@ public class PEAgent extends Agent {
     	int previousTurnNumber = stateView.getTurnNumber() - 1;
     	if(previousTurnNumber < 0) {
     		for(int i = 0; i < this.peasantCount; i++){
-    			addNextAction(actionMap);
+    			addNextAction(actionMap, stateView);
     		}
     		return actionMap;
     	}
@@ -89,16 +90,19 @@ public class PEAgent extends Agent {
 			} else {
 				StripsAction next = plan.peek();
 				ActionResult previous = previousActions.get(next.getPeasantId());
+				if(previous != null && previous.getFeedback() == ActionFeedback.FAILED){
+					actionMap.put(previous.getAction().getUnitId(), previous.getAction());
+				}
 				if(actionMap.containsKey(0)){
 					done = true; // Do the building on its own turn
 				}
-				if(actionMap.containsKey(next.getPeasantId()) || (previous != null && previous.getFeedback().ordinal() != ActionFeedback.COMPLETED.ordinal())){
+				if(actionMap.containsKey(next.getPeasantId()) || (previous != null && previous.getFeedback().ordinal() == ActionFeedback.INCOMPLETE.ordinal())){
 					done = true;
 				} else {
 					if(next.getPeasantId() == 0 && !actionMap.isEmpty()){ 
 						done = true;// Wait a turn to do the building
 					} else {
-						addNextAction(actionMap);
+						addNextAction(actionMap, stateView);
 					}
 				}
 			}
@@ -111,14 +115,23 @@ public class PEAgent extends Agent {
     	return actionMap;
     }
 
-    private void addNextAction(Map<Integer, Action> actionMap) {
-    	StripsAction action = plan.pop();   
-		actionMap.put(action.getPeasantId(), action.createSepiaAction());
-		if(action.createSepiaAction().getType().name().equals("PRIMITIVEPRODUCE")){		
+    private void addNextAction(Map<Integer, Action> actionMap, State.StateView state) {
+    	StripsAction action = plan.pop();
+    	Action sepiaAction = null;
+    	if(!action.needsDirection()){
+    		sepiaAction = action.createSepiaAction(null);
+    	} else {
+    		UnitView peasant = state.getUnit(action.getPeasantId());
+    		Position peasantPos = new Position(peasant.getXPosition(), peasant.getYPosition());
+    		Position destinationPos = action.targetPosition();
+    		sepiaAction = action.createSepiaAction(peasantPos.getDirection(destinationPos));
+    	}
+		actionMap.put(sepiaAction.getUnitId(), sepiaAction);
+		if(sepiaAction.getType().name().equals("PRIMITIVEPRODUCE")){		
 			peasantCount++;
 		}
 	}
-
+    
 	@Override
     public void terminalStep(State.StateView stateView, History.HistoryView historyView) {
 

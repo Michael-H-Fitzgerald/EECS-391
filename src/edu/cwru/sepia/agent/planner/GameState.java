@@ -103,15 +103,11 @@ public class GameState implements Comparable<GameState> {
 	}
 
 	private boolean peasantCanHarvest(Peasant peasant) {
-		return peasant.getPosition().getAdjacentPositions().stream().anyMatch(e -> this.isResourceLocation(e));		
+		return isResourceLocation(peasant.getPosition());
 	}
 
 	private boolean isResourceLocation(Position destination) { 
-		return occupied.containsKey(destination.hashCode()) && !destination.equals(TOWN_HALL_POSITION);
-	}
-
-	public boolean isOccupied(Position destination) {
-		return occupied.containsKey(destination.hashCode()) && this.peasants.values().stream().anyMatch(e -> e.getPosition().equals(destination));
+		return this.resources.values().stream().anyMatch(e -> e.getPosition().equals(destination)); // TODO reoptimize
 	}
 
 	public Stack<StripsAction> getPlan(){
@@ -173,15 +169,15 @@ public class GameState implements Comparable<GameState> {
 		}
 
 		GameState child = new GameState(this);
-		List<Peasant> peasantList = new ArrayList<Peasant>(this.peasants.values());
-		for(int i = 0; i < this.peasants.size(); i++){
-			Peasant peasant = peasantList.get(i);
+		for(Peasant peasant : this.peasants.values()){			
 			if(peasant.hasResource()){
-				if(peasant.getPosition().isAdjacent(TOWN_HALL_POSITION)){
+				if(peasant.getPosition().equals(TOWN_HALL_POSITION)){
 					DepositAction action = new DepositAction(peasant);
-					action.apply(child);
+					if(action.preconditionsMet(child)){
+						action.apply(child);
+					}
 				} else {
-					MoveAction action = new MoveAction(peasant, TOWN_HALL_POSITION.getAdjacentPositions().get(i));
+					MoveAction action = new MoveAction(peasant, TOWN_HALL_POSITION);
 					if(action.preconditionsMet(child)){
 						action.apply(child);
 					}
@@ -196,20 +192,16 @@ public class GameState implements Comparable<GameState> {
 			} else {
 				for(Resource resource : this.resources.values()){
 					GameState innerChild = new GameState(child);
-					List<Position> adjacentList = resource.getPosition().getAdjacentPositions();
-					MoveAction action = new MoveAction(peasant, adjacentList.get(i));
+					MoveAction action = new MoveAction(peasant, resource.getPosition());
 					if(action.preconditionsMet(innerChild)){
 						action.apply(innerChild);
 					}
-					for(int j = 0; j < this.peasants.size(); j++){
-						if(i != j){
-							Peasant other = peasantList.get(j);
-							if(!other.hasResource() && !peasantCanHarvest(peasant)){
-								if(resource.getAmountLeft() >= MAX_RESOURCE_AMOUNT_TO_TAKE * 2){
-									MoveAction otherAction = new MoveAction(other, adjacentList.get(j));
-									if(otherAction.preconditionsMet(innerChild)){
-										otherAction.apply(innerChild);
-									}
+					for(Peasant other : this.peasants.values()){
+						if(!other.equals(peasant) && !other.hasResource() && !peasantCanHarvest(peasant)){
+							if(resource.getAmountLeft() >= MAX_RESOURCE_AMOUNT_TO_TAKE * 2){
+								MoveAction otherAction = new MoveAction(other, resource.getPosition());
+								if(otherAction.preconditionsMet(innerChild)){
+									otherAction.apply(innerChild);
 								}
 							}
 						}

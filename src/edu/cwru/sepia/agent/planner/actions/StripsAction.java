@@ -2,6 +2,8 @@ package edu.cwru.sepia.agent.planner.actions;
 
 import edu.cwru.sepia.action.Action;
 import edu.cwru.sepia.agent.planner.GameState;
+import edu.cwru.sepia.agent.planner.Position;
+import edu.cwru.sepia.util.Direction;
 
 /**
  * A useful start of an interface representing strips actions. You may add new methods to this interface if needed, but
@@ -39,12 +41,20 @@ public interface StripsAction {
      */
     public GameState apply(GameState state);
 
+    public default boolean needsDirection(){
+		return false;
+	}
+    
+    public default Position targetPosition(){
+    	return null;
+    }
+    
     /**
      * Returns a SEPIA version of the specified Strips Action.
      * @param action StripsAction
      * @return SEPIA representation of same action
      */
-	public Action createSepiaAction();
+	public Action createSepiaAction(Direction direction);
 
 	public int getPeasantId();
 }

@@ -20,7 +20,7 @@ public class DepositAction implements StripsAction {
 	
 	@Override
 	public boolean preconditionsMet(GameState state) {
-		return hasResource && peasantPos.isAdjacent(townHallPos);
+		return hasResource && peasantPos.equals(townHallPos);
 	}
 
 	@Override
@@ -30,9 +30,18 @@ public class DepositAction implements StripsAction {
 	}
 
 	@Override
-	public Action createSepiaAction() {
-		Direction townhallDirection = peasantPos.getDirection(townHallPos);
-		return Action.createPrimitiveDeposit(peasantId, townhallDirection);
+	public boolean needsDirection(){
+		return true;
+	}
+	
+	@Override
+	public Position targetPosition(){
+		return townHallPos;
+	}
+	
+	@Override
+	public Action createSepiaAction(Direction direction) {
+		return Action.createPrimitiveDeposit(peasantId, direction);
 	}
 	
 	@Override

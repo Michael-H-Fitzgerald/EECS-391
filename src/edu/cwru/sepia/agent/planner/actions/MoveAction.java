@@ -4,6 +4,7 @@ import edu.cwru.sepia.action.Action;
 import edu.cwru.sepia.agent.planner.GameState;
 import edu.cwru.sepia.agent.planner.Peasant;
 import edu.cwru.sepia.agent.planner.Position;
+import edu.cwru.sepia.util.Direction;
 
 public class MoveAction implements StripsAction {
 	Peasant peasant;
@@ -16,7 +17,7 @@ public class MoveAction implements StripsAction {
 
 	@Override
 	public boolean preconditionsMet(GameState state) {
-		return !peasant.getPosition().equals(destination) && !state.isOccupied(destination);
+		return !peasant.getPosition().equals(destination);
 	}
 
 	@Override
@@ -26,7 +27,7 @@ public class MoveAction implements StripsAction {
 	}
 
 	@Override
-	public Action createSepiaAction() {
+	public Action createSepiaAction(Direction direction) {
 		return Action.createCompoundMove(peasant.getId(), destination.x, destination.y);
 	}
 

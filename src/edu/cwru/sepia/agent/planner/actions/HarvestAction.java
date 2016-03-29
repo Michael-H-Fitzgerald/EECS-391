@@ -24,7 +24,7 @@ public class HarvestAction implements StripsAction {
 	
 	@Override
 	public boolean preconditionsMet(GameState state) {
-		return hasResource && !peasant.hasResource() && peasantPos.isAdjacent(resourcePos);	
+		return hasResource && !peasant.hasResource() && peasantPos.equals(resourcePos);	
 	}
 
 	@Override
@@ -34,9 +34,18 @@ public class HarvestAction implements StripsAction {
 	}
 
 	@Override
-	public Action createSepiaAction() {
-		Direction resourceDirection = peasantPos.getDirection(resourcePos);
-		return Action.createPrimitiveGather(peasant.getId(), resourceDirection);
+	public boolean needsDirection(){
+		return true;
+	}
+	
+	@Override
+	public Position targetPosition(){
+		return resourcePos;
+	}
+	
+	@Override
+	public Action createSepiaAction(Direction direction) {
+		return Action.createPrimitiveGather(peasant.getId(), direction);
 	}
 	
 	@Override
