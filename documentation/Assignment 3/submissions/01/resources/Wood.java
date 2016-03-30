@@ -1,4 +1,6 @@
-package edu.cwru.sepia.agent.planner;
+package edu.cwru.sepia.agent.planner.resources;
+
+import edu.cwru.sepia.agent.planner.Position;
 
 public class Wood extends Resource {
 	public Wood(int id, int amountLeft, Position position){

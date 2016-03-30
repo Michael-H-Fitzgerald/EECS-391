@@ -4,32 +4,28 @@ import edu.cwru.sepia.action.Action;
 import edu.cwru.sepia.agent.planner.GameState;
 import edu.cwru.sepia.agent.planner.Peasant;
 import edu.cwru.sepia.agent.planner.Position;
-import edu.cwru.sepia.agent.planner.resources.Resource;
 import edu.cwru.sepia.util.Direction;
 
-public class HarvestAction implements StripsAction {
-	Peasant peasant;
-	int resourceId;
+public class DepositAction implements StripsAction {
+	int peasantId;
 	Position peasantPos;
-	Position resourcePos;
+	Position townHallPos = GameState.TOWN_HALL_POSITION;
 	boolean hasResource;
-
-	public HarvestAction(Peasant peasant, Resource resource){
-		this.peasant = peasant;
-		this.resourceId = resource.getId();
+	
+	public DepositAction(Peasant peasant){
+		this.peasantId = peasant.getId();
 		this.peasantPos = peasant.getPosition();
-		this.resourcePos = resource.getPosition();
-		this.hasResource = resource.hasRemaining();
+		this.hasResource = peasant.hasResource();
 	}
 	
 	@Override
 	public boolean preconditionsMet(GameState state) {
-		return hasResource && !peasant.hasResource() && peasantPos.equals(resourcePos);	
+		return hasResource && peasantPos.equals(townHallPos);
 	}
 
 	@Override
 	public GameState apply(GameState state) {
-		state.applyHarvestAction(this, peasant.getId(), resourceId);
+		state.applyDepositAction(this, peasantId);
 		return state;
 	}
 
@@ -40,16 +36,17 @@ public class HarvestAction implements StripsAction {
 	
 	@Override
 	public Position getPositionForDirection(){
-		return resourcePos;
+		return townHallPos;
 	}
 	
 	@Override
 	public Action createSepiaAction(Direction direction) {
-		return Action.createPrimitiveGather(peasant.getId(), direction);
+		return Action.createPrimitiveDeposit(peasantId, direction);
 	}
 	
 	@Override
 	public int getUnitId() {
-		return peasant.getId();	
+		return peasantId;	
 	}
+
 }
