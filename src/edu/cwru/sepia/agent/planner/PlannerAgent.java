@@ -106,25 +106,34 @@ public class PlannerAgent extends Agent {
 		
 		while(!frontierQueue.isEmpty()){ 
 			GameState current = frontierQueue.remove();
+			frontierSet.remove(current);
+			
 			if(current.isGoal()){
 				return current.getPlan();
-			} else {
-				exploredSet.add(current);				
-				current.generateChildren().stream().forEach(e -> {
-					if(!exploredSet.contains(e)){
-						if(!frontierSet.contains(e)){					
-							frontierQueue.add(e);
-							frontierSet.add(e);
-						} else {
-							// Update node's path						
-							frontierQueue.remove(e);
-							frontierQueue.add(e);
-							frontierSet.remove(e);
-							frontierSet.add(e);
+			}
+			
+			exploredSet.add(current);			
+			current.generateChildren().stream().forEach(child -> {
+				if(!exploredSet.contains(child)){
+					if(!frontierSet.contains(child)){					
+						frontierQueue.add(child);
+						frontierSet.add(child);
+					} else {
+						GameState first = null;
+						for(GameState possible : frontierSet){
+							if(possible.equals(child)){
+								first = possible;
+							}
+						}
+						if(first.getCost() > child.getCost()){
+							frontierQueue.remove(first);
+							frontierQueue.add(child);
+							frontierSet.remove(first);
+							frontierSet.add(child);
 						}
 					}
-				});
-			}
+				}
+			});
 		}
 		return null;
     }

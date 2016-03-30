@@ -48,19 +48,7 @@ public class PEAgent extends Agent {
     }
 
     /**
-     * This is where you will read the provided plan and execute it. If your plan is correct then when the plan is empty
-     * the scenario should end with a victory. If the scenario keeps running after you run out of actions to execute
-     * then either your plan is incorrect or your execution of the plan has a bug.
-     *     *
-     * For the compound actions you will need to check their progress and wait until they are complete before issuing
-     * another action for that unit. If you issue an action before the compound action is complete then the peasant
-     * will stop what it was doing and begin executing the new action.
-     *
-     * To check an action's progress you can call getCurrentDurativeAction on each UnitView. If the Action is null nothing
-     * is being executed. If the action is not null then you should also call getCurrentDurativeProgress. If the value is less than
-     * 1 then the action is still in progress.
-     *
-     * Also remember to check your plan's preconditions before executing!
+     * @return a map from unitId to Action containing all actions that should be applied at the next turn
      */
     @Override
     public Map<Integer, Action> middleStep(State.StateView stateView, History.HistoryView historyView) {
@@ -91,14 +79,17 @@ public class PEAgent extends Agent {
 					actionMap.put(previous.getAction().getUnitId(), previous.getAction());
 				}
 				if(actionMap.containsKey(TOWN_HALL_ID)){
-					// If we are building don't add the next action
+					// If we are building don't add the next action in case it is for a peasant that doesn't exist yet
 					done = true;
 				}
-				if(actionMap.containsKey(next.getUnitId()) || (previous != null && previous.getFeedback().ordinal() == ActionFeedback.INCOMPLETE.ordinal())){
+				if(actionMap.containsKey(next.getUnitId()) || 
+						(previous != null && previous.getFeedback().ordinal() == ActionFeedback.INCOMPLETE.ordinal())){
+					// The peasant for which we would add another action already has an action or is waiting on a compound move
 					done = true;
 				} else {
 					if(next.getUnitId() == TOWN_HALL_ID && !actionMap.isEmpty()){ 
-						done = true; // Wait a turn to do the building
+						// Currently there is another action (possibly a deposit) so wait until the next turn to try to build 
+						done = true; 
 					} else {
 						addNextAction(actionMap, stateView);
 					}

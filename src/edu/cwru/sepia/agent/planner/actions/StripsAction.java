@@ -25,7 +25,7 @@ public interface StripsAction {
      * @return State resulting from successful action application.
      */
     public GameState apply(GameState state);
-
+    
     public default boolean isDirectedAction(){
 		return false;
 	}
@@ -46,4 +46,8 @@ public interface StripsAction {
 	 * @return the id of the unit to perform the action
 	 */
 	public int getUnitId();
+	
+	public default double getCost(){
+		return 1;
+	}
 }

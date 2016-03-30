@@ -35,5 +35,10 @@ public class MoveAction implements StripsAction {
 	public int getUnitId() {
 		return peasant.getId();	
 	}
+	
+	@Override
+	public double getCost(){
+		return peasant.getPosition().chebyshevDistance(destination) - 1;
+	}
 
 }
