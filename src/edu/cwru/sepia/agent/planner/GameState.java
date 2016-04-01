@@ -274,12 +274,10 @@ public class GameState implements Comparable<GameState> {
 		}		
 		this.peasants.put(peasant.getId(), peasant);
 		this.buildPeasantOffset = this.buildPeasantOffset + BUILD_PESANT_OFFSET;
-		updatePlanAndCost(action);
 	}
 
 	public void applyMoveAction(StripsAction action, int peasantId, Position destination) {
 		getPeasantWithId(peasantId).setPosition(destination);
-		updatePlanAndCost(action);
 	}
 
 	public void applyHarvestAction(StripsAction action, int peasantId, int resourceId) {
@@ -292,7 +290,6 @@ public class GameState implements Comparable<GameState> {
 			peasant.setNumWood(Math.min(100, resource.getAmountLeft()));
 			resource.setAmountLeft(Math.max(0, resource.getAmountLeft() - 100));
 		}
-		updatePlanAndCost(action);
 	}
 
 	public void applyDepositAction(StripsAction action, int peasantId) {
@@ -304,7 +301,6 @@ public class GameState implements Comparable<GameState> {
 			this.obtainedWood = this.obtainedWood + peasant.getNumWood();
 			peasant.setNumWood(0);
 		}
-		updatePlanAndCost(action);
 	}
 	
 	public void updatePlanAndCost(StripsAction action) {
