@@ -46,9 +46,9 @@ public class PlannerAgent extends Agent {
 
     @Override
     public Map<Integer, Action> initialStep(State.StateView stateView, History.HistoryView historyView) {
-    	
-        Stack<StripsAction> plan = AstarSearch(new GameState(stateView, playernum, requiredGold, requiredWood, buildPeasants));
-        
+
+    	Stack<StripsAction> plan = AstarSearch(new GameState(stateView, playernum, requiredGold, requiredWood, buildPeasants));
+
         if(plan == null) {
             System.err.println("No plan was found");
             System.exit(1);

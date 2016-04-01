@@ -67,12 +67,7 @@ public class PEAgent extends Agent {
     		return actionMap;
     	}
 
-		Map<Integer, ActionResult> previousActions = historyView.getCommandFeedback(playernum, previousTurnNumber);	
-		for(ActionResult previous : previousActions.values()){
-			if(previous.getFeedback() == ActionFeedback.FAILED){
-				System.out.println("Action " + previous.getFeedback()+ ": UnitId: " + previous.getAction().getUnitId() + " - Type: " + previous.getAction().getType().name());
-			}
-		}
+		Map<Integer, ActionResult> previousActions = historyView.getCommandFeedback(playernum, previousTurnNumber);
 		boolean done = false;
 		while(!done){
 			if(plan.empty()){
@@ -94,7 +89,7 @@ public class PEAgent extends Agent {
 				} else {
 					if(next.getUnitId() == TOWN_HALL_ID && !actionMap.isEmpty()){ 
 						// Currently there is another action (possibly a deposit) so wait until the next turn to try to build 
-						done = true; 
+						done = true;
 					} else {
 						addNextAction(actionMap, stateView);
 					}

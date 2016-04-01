@@ -18,7 +18,6 @@ import edu.cwru.sepia.agent.planner.resources.Resource;
 import edu.cwru.sepia.agent.planner.resources.Wood;
 import edu.cwru.sepia.environment.model.state.State;
 
-
 /**
  * 
  * @author Sarah Whelan
@@ -44,7 +43,6 @@ public class GameState implements Comparable<GameState> {
 	private int obtainedWood = 0;
 
 	private int nextId = 0;
-	private int buildPeasantOffset = 0;
 	
 	private double cost = 0;
 	private double heuristic = 0;
@@ -90,7 +88,6 @@ public class GameState implements Comparable<GameState> {
 	public GameState(GameState state) {
 		this.obtainedGold = state.obtainedGold;
 		this.obtainedWood = state.obtainedWood;
-		this.buildPeasantOffset = state.buildPeasantOffset;
 		this.nextId = state.nextId;
 		this.cost = state.cost;
 		state.peasants.values().stream().forEach(e -> this.peasants.put(e.getId(), new Peasant(e)));
@@ -117,7 +114,16 @@ public class GameState implements Comparable<GameState> {
 	}
 
 	private boolean peasantCanHarvest(Peasant peasant) {
-		return isResourceLocation(peasant.getPosition());
+		return isResourceLocation(peasant.getPosition()) && getResourceForPosition(peasant.getPosition()).hasRemaining();
+	}
+	
+	/**
+	 * Be sure there is a resource there first.
+	 * @param position
+	 * @return
+	 */
+	private Resource getResourceForPosition(Position position){
+		return this.resources.values().stream().filter(e -> e.getPosition().equals(position)).findFirst().get();
 	}
 
 	private boolean isResourceLocation(Position destination) { 
@@ -141,7 +147,11 @@ public class GameState implements Comparable<GameState> {
 	}
 
 	/**
-	 *
+	 * Adds for the amount of resources still needing to be collected.
+	 * Adds for not having peasants
+	 * Adds for not being near resources if not holding anything
+	 * Adds for not being near town all if holding something
+	 * Subtracts for if you can make peasants or if you are next to a resource and not holding anything
 	 * 
 	 * @return The value estimated remaining cost to reach a goal state from this state.
 	 */
@@ -176,7 +186,7 @@ public class GameState implements Comparable<GameState> {
 			} else {
 				if(peasantCanHarvest(peasant)){
 					this.heuristic -= 50;
-				} else {
+				} else if(!isResourceLocation(peasant.getPosition())){
 					this.heuristic += 100;
 				}
 			}
@@ -283,15 +293,9 @@ public class GameState implements Comparable<GameState> {
 
 	public void applyBuildAction(StripsAction action) {
 		this.obtainedGold = this.obtainedGold - REQUIRED_GOLD_TO_BUILD;
-		Peasant peasant = null;
-		if(this.peasants.size() == 1){
-			peasant = new Peasant(nextId, new Position(TOWN_HALL_POSITION.x - 1, TOWN_HALL_POSITION.y));
-			nextId++;
-		} else {
-			peasant = new Peasant(nextId, new Position(TOWN_HALL_POSITION.x - 1, TOWN_HALL_POSITION.y - 1));
-		}		
+		Peasant peasant = new Peasant(nextId, new Position(TOWN_HALL_POSITION));
+		nextId++;
 		this.peasants.put(peasant.getId(), peasant);
-		this.buildPeasantOffset = this.buildPeasantOffset + BUILD_PESANT_OFFSET;
 	}
 
 	public void applyMoveAction(StripsAction action, int peasantId, Position destination) {
@@ -345,7 +349,6 @@ public class GameState implements Comparable<GameState> {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + buildPeasantOffset;
 		result = prime * result + obtainedGold;
 		result = prime * result + obtainedWood;
 		result = prime * result + ((peasants == null) ? 0 : peasants.hashCode());
@@ -361,8 +364,6 @@ public class GameState implements Comparable<GameState> {
 		if (getClass() != obj.getClass())
 			return false;
 		GameState other = (GameState) obj;
-		if (buildPeasantOffset != other.buildPeasantOffset)
-			return false;
 		if (obtainedGold != other.obtainedGold)
 			return false;
 		if (obtainedWood != other.obtainedWood)
