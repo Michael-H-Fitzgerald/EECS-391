@@ -68,6 +68,11 @@ public class PEAgent extends Agent {
     	}
 
 		Map<Integer, ActionResult> previousActions = historyView.getCommandFeedback(playernum, previousTurnNumber);	
+		for(ActionResult previous : previousActions.values()){
+			if(previous.getFeedback() == ActionFeedback.FAILED){
+				System.out.println("Action " + previous.getFeedback()+ ": UnitId: " + previous.getAction().getUnitId() + " - Type: " + previous.getAction().getType().name());
+			}
+		}
 		boolean done = false;
 		while(!done){
 			if(plan.empty()){
@@ -106,9 +111,13 @@ public class PEAgent extends Agent {
     		sepiaAction = action.createSepiaAction(null);
     	} else {
     		UnitView peasant = state.getUnit(action.getUnitId());
+    		if(peasant == null){
+    			plan.push(action);
+    			return;
+    		}
     		Position peasantPos = new Position(peasant.getXPosition(), peasant.getYPosition());
     		Position destinationPos = action.getPositionForDirection();
-    		sepiaAction = action.createSepiaAction(peasantPos.getDirection(destinationPos));
+    		sepiaAction = action.createSepiaAction(peasantPos.getDirection(destinationPos));    		
     	}
 		actionMap.put(sepiaAction.getUnitId(), sepiaAction);
 	}

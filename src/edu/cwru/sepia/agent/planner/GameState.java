@@ -26,7 +26,6 @@ import edu.cwru.sepia.environment.model.state.State;
 public class GameState implements Comparable<GameState> {
 	public static int PEASANT_TEMPLATE_ID;
 	public static Position TOWN_HALL_POSITION;
-	public static final boolean INCLUDE_ALL_STATES = false;
 
 	private static final String TOWNHALL_NAME = "townhall";
 	private static final String GOLD_RESOURCE_NAME = "GOLD_MINE";
@@ -37,7 +36,7 @@ public class GameState implements Comparable<GameState> {
 	private static int requiredGold;
 	private static int requiredWood;
 	private static int townHallId;
-	private static boolean buildPeasants = false;
+	private static boolean buildPeasants;
 	
 	private static Set<Position> resourcePositions = new HashSet<Position>();
 
@@ -48,10 +47,11 @@ public class GameState implements Comparable<GameState> {
 	private int buildPeasantOffset = 0;
 	
 	private double cost = 0;
+	private double heuristic = 0;
 
 	private Map<Integer, Peasant> peasants = new HashMap<Integer, Peasant>(3);
 	private Map<Integer, Resource> resources = new HashMap<Integer, Resource>(7);
-	private List<StripsAction> plan = new ArrayList<StripsAction>();
+	private List<StripsAction> plan = new ArrayList<StripsAction>(300);
 
 	/**
 	 * 
@@ -146,20 +146,43 @@ public class GameState implements Comparable<GameState> {
 	 * @return The value estimated remaining cost to reach a goal state from this state.
 	 */
 	public double heuristic() {
-		double result = 0;
-		result = result + (obtainedGold + obtainedWood * 2 + buildPeasantOffset) * 2;
+		if(this.heuristic != 0){
+			return heuristic;
+		}
+		
+		if(obtainedWood > obtainedGold){
+			this.heuristic += 100;
+		}
+		if(obtainedGold <= requiredGold){
+			this.heuristic += (requiredGold - obtainedGold);
+		} else {
+			this.heuristic += (obtainedGold - requiredGold);
+		}
+		if(obtainedWood <= requiredWood){
+			this.heuristic += (requiredWood - obtainedWood);
+		} else {
+			this.heuristic += obtainedWood - requiredWood;
+		}
+		if(buildPeasants){
+			this.heuristic += (MAX_NUM_PEASANTS - this.peasants.size()) * BUILD_PESANT_OFFSET;
+			if(canBuild()){
+				this.heuristic -= BUILD_PESANT_OFFSET;
+			}
+		}
+		
 		for(Peasant peasant : this.peasants.values()){
 			if(peasant.hasResource()){
-				result = result + (peasant.getNumGold() + peasant.getNumWood() * 2);
+				this.heuristic -= peasant.getNumGold() + peasant.getNumWood();
 			} else {
-				result = result - 100;
-				if(peasant.getPosition().equals(TOWN_HALL_POSITION)){
-					result = result - 100;
+				if(peasantCanHarvest(peasant)){
+					this.heuristic -= 50;
+				} else {
+					this.heuristic += 100;
 				}
 			}
-			result = result + 100;
 		}
-		return -1 * result;
+		
+		return this.heuristic;
 	}
 
 	/**
@@ -227,11 +250,6 @@ public class GameState implements Comparable<GameState> {
 			}
 		}
 		children.add(child);
-		
-		
-		if(!INCLUDE_ALL_STATES){
-			return children;
-		}
 		
 		for(Peasant peasant : this.peasants.values()){
 			GameState innerChild = new GameState(this);
@@ -315,9 +333,9 @@ public class GameState implements Comparable<GameState> {
 	 */
 	@Override
 	public int compareTo(GameState o) {
-		if(this.heuristic() < o.heuristic()){
+		if(this.heuristic() > o.heuristic()){
 			return 1;
-		} else if(this.heuristic() > o.heuristic()){
+		} else if(this.heuristic() < o.heuristic()){
 			return -1;
 		}
 		return 0;
