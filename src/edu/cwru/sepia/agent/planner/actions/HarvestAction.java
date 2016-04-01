@@ -14,7 +14,7 @@ public class HarvestAction implements StripsAction {
 	Position resourcePos;
 	boolean hasResource;
 
-	public HarvestAction(Peasant peasant, Resource resource){
+	public HarvestAction(Peasant peasant, Resource resource) {
 		this.peasant = peasant;
 		this.resourceId = resource.getId();
 		this.peasantPos = peasant.getPosition();
@@ -33,12 +33,12 @@ public class HarvestAction implements StripsAction {
 	}
 
 	@Override
-	public boolean isDirectedAction(){
+	public boolean isDirectedAction() {
 		return true;
 	}
 	
 	@Override
-	public Position getPositionForDirection(){
+	public Position getPositionForDirection() {
 		return resourcePos;
 	}
 	

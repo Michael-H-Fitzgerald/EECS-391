@@ -104,28 +104,28 @@ public class PlannerAgent extends Agent {
     	frontierQueue.add(startState);
 		frontierSet.add(startState);
 		
-		while(!frontierQueue.isEmpty()){ 
+		while(!frontierQueue.isEmpty()) { 
 			GameState current = frontierQueue.remove();
 			frontierSet.remove(current);
 			
-			if(current.isGoal()){
+			if(current.isGoal()) {
 				return current.getPlan();
 			}
 			
 			exploredSet.add(current);			
 			current.generateChildren().stream().forEach(child -> {
 				if(!exploredSet.contains(child)){
-					if(!frontierSet.contains(child)){					
+					if(!frontierSet.contains(child)) {					
 						frontierQueue.add(child);
 						frontierSet.add(child);
 					} else {
 						GameState first = null;
-						for(GameState possible : frontierSet){
-							if(possible.equals(child)){
+						for(GameState possible : frontierSet) {
+							if(possible.equals(child)) {
 								first = possible;
 							}
 						}
-						if(first.getCost() > child.getCost()){
+						if(first.getCost() > child.getCost()) {
 							frontierQueue.remove(first);
 							frontierQueue.add(child);
 							frontierSet.remove(first);

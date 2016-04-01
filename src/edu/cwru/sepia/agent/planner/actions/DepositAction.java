@@ -12,7 +12,7 @@ public class DepositAction implements StripsAction {
 	Position townHallPos = GameState.TOWN_HALL_POSITION;
 	boolean hasResource;
 	
-	public DepositAction(Peasant peasant){
+	public DepositAction(Peasant peasant) {
 		this.peasantId = peasant.getId();
 		this.peasantPos = peasant.getPosition();
 		this.hasResource = peasant.hasResource();
@@ -29,12 +29,12 @@ public class DepositAction implements StripsAction {
 	}
 
 	@Override
-	public boolean isDirectedAction(){
+	public boolean isDirectedAction() {
 		return true;
 	}
 	
 	@Override
-	public Position getPositionForDirection(){
+	public Position getPositionForDirection() {
 		return townHallPos;
 	}
 	

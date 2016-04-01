@@ -10,7 +10,7 @@ public class MoveAction implements StripsAction {
 	Peasant peasant;
 	Position destination;
 
-	public MoveAction(Peasant peasant, Position destination){
+	public MoveAction(Peasant peasant, Position destination) {
 		this.peasant = peasant;
 		this.destination = destination;
 	}
@@ -36,7 +36,7 @@ public class MoveAction implements StripsAction {
 	}
 	
 	@Override
-	public double getCost(){
+	public double getCost() {
 		return peasant.getPosition().chebyshevDistance(destination) - 1;
 	}
 

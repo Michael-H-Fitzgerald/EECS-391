@@ -3,7 +3,7 @@ package edu.cwru.sepia.agent.planner.resources;
 import edu.cwru.sepia.agent.planner.Position;
 
 public class Gold extends Resource {
-	public Gold(int id, int amountLeft, Position position){
+	public Gold(int id, int amountLeft, Position position) {
 		this.id = id;
 		this.amountLeft = amountLeft;
 		this.position = position;

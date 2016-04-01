@@ -13,19 +13,12 @@ import edu.cwru.sepia.agent.Agent;
 import edu.cwru.sepia.agent.planner.actions.StripsAction;
 import edu.cwru.sepia.environment.model.history.History;
 import edu.cwru.sepia.environment.model.state.State;
-import edu.cwru.sepia.environment.model.state.Unit;
 import edu.cwru.sepia.environment.model.state.Unit.UnitView;
 
-/**
- * This is an outline of the PEAgent. Implement the provided methods. You may add your own methods and members.
- */
 public class PEAgent extends Agent {
-	private static final String TOWN_HALL_NAME = "townhall";
-
 	private static final long serialVersionUID = 1L;
 
     private Stack<StripsAction> plan = null;
-    private int TOWN_HALL_ID;
 
     public PEAgent(int playernum, Stack<StripsAction> plan) {
         super(playernum);
@@ -34,16 +27,6 @@ public class PEAgent extends Agent {
 
     @Override
     public Map<Integer, Action> initialStep(State.StateView stateView, History.HistoryView historyView) {
-    	
-        // gets the townhall ID and the peasant ID
-        for(int unitId : stateView.getUnitIds(playernum)) {
-            Unit.UnitView unit = stateView.getUnit(unitId);
-            String unitType = unit.getTemplateView().getName().toLowerCase();
-            if(unitType.equals(TOWN_HALL_NAME)) {
-                TOWN_HALL_ID = unitId;
-            }
-        }
-
         return middleStep(stateView, historyView);
     }
 
@@ -54,41 +37,32 @@ public class PEAgent extends Agent {
     public Map<Integer, Action> middleStep(State.StateView stateView, History.HistoryView historyView) {
     	Map<Integer, Action> actionMap = new HashMap<Integer, Action>();
 
-    	if(plan.isEmpty()){
+    	if(plan.isEmpty()) {
     		return actionMap;
     	}
     	
     	int previousTurnNumber = stateView.getTurnNumber() - 1;
     	
     	if(previousTurnNumber < 0) {
-        	// It is the first turn initialize this assumes there is 
-    		// only one peasant at start and so only adds one action
     		addNextAction(actionMap, stateView);
     		return actionMap;
     	}
 
 		Map<Integer, ActionResult> previousActions = historyView.getCommandFeedback(playernum, previousTurnNumber);
 		boolean done = false;
-		while(!done){
-			if(plan.empty()){
+		while(!done) {
+			if(plan.empty()) {
 				done = true;
 			} else {
 				StripsAction next = plan.peek();
 				ActionResult previous = previousActions.get(next.getUnitId());
-				if(previous != null && previous.getFeedback() == ActionFeedback.FAILED){
+				if(lastActionFailed(previous)) {
 					actionMap.put(previous.getAction().getUnitId(), previous.getAction());
 				}
-				if(actionMap.containsKey(TOWN_HALL_ID)){
-					// If we are building don't add the next action in case it is for a peasant that doesn't exist yet
-					done = true;
-				}
-				if(actionMap.containsKey(next.getUnitId()) || 
-						(previous != null && previous.getFeedback().ordinal() == ActionFeedback.INCOMPLETE.ordinal())){
-					// The peasant for which we would add another action already has an action or is waiting on a compound move
+				if(!peasantAvailable(actionMap, next, previous)) {
 					done = true;
 				} else {
-					if(next.getUnitId() == TOWN_HALL_ID && !actionMap.isEmpty()){ 
-						// Currently there is another action (possibly a deposit) so wait until the next turn to try to build 
+					if(waitOnBuild(actionMap, next)) { 
 						done = true;
 					} else {
 						addNextAction(actionMap, stateView);
@@ -99,14 +73,27 @@ public class PEAgent extends Agent {
     	return actionMap;
     }
 
+	private boolean lastActionFailed(ActionResult previous) {
+		return previous != null && previous.getFeedback() == ActionFeedback.FAILED;
+	}
+
+	private boolean peasantAvailable(Map<Integer, Action> actionMap, StripsAction next, ActionResult previous) {
+		return !actionMap.containsKey(next.getUnitId()) && 
+				!(previous != null && previous.getFeedback().ordinal() == ActionFeedback.INCOMPLETE.ordinal());
+	}
+
+	private boolean waitOnBuild(Map<Integer, Action> actionMap, StripsAction next) {
+		return next.getUnitId() == GameState.TOWN_HALL_ID && !actionMap.isEmpty();
+	}
+
     private void addNextAction(Map<Integer, Action> actionMap, State.StateView state) {
     	StripsAction action = plan.pop();
     	Action sepiaAction = null;
-    	if(!action.isDirectedAction()){
+    	if(!action.isDirectedAction()) {
     		sepiaAction = action.createSepiaAction(null);
     	} else {
     		UnitView peasant = state.getUnit(action.getUnitId());
-    		if(peasant == null){
+    		if(peasant == null) {
     			plan.push(action);
     			return;
     		}

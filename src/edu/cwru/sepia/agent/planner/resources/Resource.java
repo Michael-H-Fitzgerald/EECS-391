@@ -14,18 +14,23 @@ public abstract class Resource {
 	public int getId() {
 		return id;
 	}
+	
 	public void setId(int id) {
 		this.id = id;
 	}
+	
 	public int getAmountLeft() {
 		return amountLeft;
 	}
+	
 	public void setAmountLeft(int amountLeft) {
 		this.amountLeft = amountLeft;
 	}
+	
 	public Position getPosition() {
 		return position;
 	}
+	
 	public void setPosition(Position position) {
 		this.position = position;
 	}
