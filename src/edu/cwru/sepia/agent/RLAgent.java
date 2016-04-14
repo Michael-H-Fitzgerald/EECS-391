@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -17,13 +18,12 @@ import java.util.Random;
 import edu.cwru.sepia.action.Action;
 import edu.cwru.sepia.action.ActionFeedback;
 import edu.cwru.sepia.action.ActionResult;
+import edu.cwru.sepia.action.TargetedAction;
+import edu.cwru.sepia.environment.model.history.DamageLog;
 import edu.cwru.sepia.environment.model.history.DeathLog;
 import edu.cwru.sepia.environment.model.history.History;
 import edu.cwru.sepia.environment.model.state.State;
 import edu.cwru.sepia.environment.model.state.Unit;
-
-//import edu.cwru.sepia.action.TargetedAction;
-//import edu.cwru.sepia.environment.model.history.DamageLog;
 
 public class RLAgent extends Agent {
 	private static final long serialVersionUID = 1L;
@@ -46,16 +46,13 @@ public class RLAgent extends Agent {
      */
     public final Random random = new Random(12345);
 
-    
-    /**
-     * Set this to whatever size your feature vector is.
-     */
-    public static final int NUM_FEATURES = 5;
+    public static final int NUM_FEATURES = 1;
 
     public final int numEpisodes;
     public int currentEpisode = 0;
     public int currentPhaseEpisodeCount = 0;
     public boolean inEvaluationEpisode = false;
+    public List<Double> averageRewards = new ArrayList<Double>(10);
     
     private List<Integer> myFootmen;
     private List<Integer> enemyFootmen;
@@ -97,9 +94,9 @@ public class RLAgent extends Agent {
         return middleStep(stateView, historyView);
     }
 
-	private List<Integer> findFootmen(State.StateView stateView, int filterId){
+	private List<Integer> findFootmen(State.StateView stateView, int controllerId){
 		List<Integer> footmen = new LinkedList<>();
-        for (Integer unitId : stateView.getUnitIds(filterId)) {
+        for (Integer unitId : stateView.getUnitIds(controllerId)) {
             Unit.UnitView unit = stateView.getUnit(unitId);
             String unitName = unit.getTemplateView().getName().toLowerCase();
             if (unitName.equals(FOOTMAN_UNIT_NAME)) {
@@ -112,7 +109,7 @@ public class RLAgent extends Agent {
 	}
 
     /**
-     * You will need to calculate the reward at each step and update your totals. You will also need to
+     * You will need to calculate the reward at each step and update your totals. You will also need to TODO
      * check if an event has occurred. If it has then you will need to update your weights and select a new action.
      *
      * You should also check for completed actions using the history view. Obviously you never want a footman just
@@ -149,6 +146,22 @@ public class RLAgent extends Agent {
 			for(Integer attackerId : myFootmen){
 				if(!marchingOrders.containsKey(attackerId)){
 					if(!actionResults.containsKey(attackerId) || actionResults.get(attackerId).getFeedback().equals(ActionFeedback.COMPLETED)){
+						int defenderId = 1;
+						
+						double[] oldWeights = new double[NUM_FEATURES];
+						for(int i = 0; i < NUM_FEATURES; i++){
+							oldWeights[i] = weights[i];
+						}
+						double[] newWeights = 
+									updateWeights(	oldWeights, 
+													calculateFeatureVector(stateView, historyView, attackerId, defenderId),
+													calculateReward(stateView, historyView, attackerId),
+													stateView,
+													historyView,
+													attackerId);
+						for(int i = 0; i < NUM_FEATURES; i++){
+							weights[i] = newWeights[i];
+						}
 						int enemyId = selectAction(stateView, historyView, attackerId);
 						Action action = Action.createCompoundAttack(attackerId, enemyId);
 						marchingOrders.put(attackerId, action);
@@ -170,11 +183,11 @@ public class RLAgent extends Agent {
     public void terminalStep(State.StateView stateView, History.HistoryView historyView) {
     	currentPhaseEpisodeCount++;
     	if(inEvaluationEpisode){
+    		//averageRewards.add(calculateReward(stateView, historyView, footmanId)) TODO
     		if(currentPhaseEpisodeCount == NUM_EVALUATING_EPISODES){
-    			List<Double> averageRewards = new LinkedList<>();
-    	    	//TODO
     			printTestData(averageRewards);
     			currentPhaseEpisodeCount = 0;
+    			averageRewards = new ArrayList<Double>(10);
     		}
     	} else if(currentPhaseEpisodeCount == NUM_LEARNING_EPISODES){
     		inEvaluationEpisode = true;
@@ -199,13 +212,16 @@ public class RLAgent extends Agent {
      */
     private double[] updateWeights(double[] oldWeights, double[] oldFeatures, double totalReward, State.StateView stateView, History.HistoryView historyView, int footmanId) {
     	double[] newWeights = new double[NUM_FEATURES];
+    	int toAttack = getArgMaxForQ(stateView, historyView, footmanId);
+    	double QValue = calcQValue(stateView, historyView, footmanId, toAttack);
+    	double previousQValue = calcQValueGivenFeatures(oldFeatures);
     	for(int i = 0; i < NUM_FEATURES; i++){
-    		newWeights[i] = oldWeights[i] + LEARNING_RATE * (totalReward - calcQValue(stateView, historyView, footmanId, 1) * calcFeatureValue(i)); //TODO that 1 is wrong
+    		newWeights[i] = oldWeights[i] - LEARNING_RATE * (-(totalReward + (GAMMA * QValue) - previousQValue) * calcFeatureValue(i));
     	}
         return newWeights;
     }
-
-    /**
+    
+	/**
      * Given a footman and the current state and history of the game select the enemy that this unit should
      * attack. This is where you would do the epsilon-greedy action selection.
      *
@@ -215,7 +231,25 @@ public class RLAgent extends Agent {
      * @return The enemy footman ID this unit should attack
      */
     private int selectAction(State.StateView stateView, History.HistoryView historyView, int attackerId) {
-        return enemyFootmen.get(0);//TODO
+    	Double decider = random.nextDouble();
+    	if(decider > 1 - EPSILON){
+    		return getArgMaxForQ(stateView, historyView, attackerId);
+    	} else {
+    		return enemyFootmen.get(random.nextInt(enemyFootmen.size()));
+    	}
+    }
+    
+    private int getArgMaxForQ(State.StateView stateView, History.HistoryView historyView, int attackerId) {
+    	int toAttackId = -1;
+    	double max = Double.MIN_VALUE;
+    	for(Integer enemyId : enemyFootmen){
+    		double possible = calcQValue(stateView, historyView, attackerId, enemyId);
+    		if(possible > max){
+    			max = possible;
+    			toAttackId = enemyId;  
+    		}
+    	}    	
+    	return toAttackId;
     }
 
     /**
@@ -227,14 +261,6 @@ public class RLAgent extends Agent {
      * Remember that you will need to discount this reward based on the timestep it is received on. See
      * the assignment description for more details.
      *
-     * As part of the reward you will need to calculate if any of the units have taken damage. You can use
-     * the history view to get a list of damages dealt in the previous turn. Use something like the following.
-     *
-     * for(DamageLog damageLogs : historyView.getDamageLogs(lastTurnNumber)) {
-     *     System.out.println("Defending player: " + damageLog.getDefenderController() + " defending unit: " + \
-     *     damageLog.getDefenderID() + " attacking player: " + damageLog.getAttackerController() + \
-     *     "attacking unit: " + damageLog.getAttackerID());
-     * }
      *
      * You will do something similar for the deaths. See the middle step documentation for a snippet
      * showing how to use the deathLogs.
@@ -252,10 +278,40 @@ public class RLAgent extends Agent {
      * @return The current reward
      */
     private double calculateReward(State.StateView stateView, History.HistoryView historyView, int footmanId) {
-        return 0;//TODO
+    	double reward = -0.1;
+    	int previousTurnNumber = stateView.getTurnNumber() - 1;
+    	
+    	for(DamageLog damageLog : historyView.getDamageLogs(previousTurnNumber)) {
+    		if(damageLog.getAttackerController() == playernum && damageLog.getAttackerID() == footmanId){
+    			reward = reward + damageLog.getDamage();
+    		} else if(damageLog.getAttackerController() == ENEMY_PLAYERNUM && damageLog.getDefenderID() == footmanId){
+    			reward = reward - damageLog.getDamage();
+    		}
+    		System.out.println("Damage entry: Defending player: " + damageLog.getDefenderController() + " defending unit: " + damageLog.getDefenderID() +
+    				" attacking player: " + damageLog.getAttackerController() + "attacking unit: " + damageLog.getAttackerID());
+    	}
+    	
+		for(DeathLog deathLog : historyView.getDeathLogs(previousTurnNumber)){
+			if(deathLog.getController() == ENEMY_PLAYERNUM && thisFootmanWasAttackingTheDeadGuy(footmanId, deathLog, historyView, previousTurnNumber)){
+				reward = reward + 100;
+			} else if(deathLog.getDeadUnitID() == footmanId) {
+				reward = reward - 100;
+			}
+		}
+    	
+    	return reward;
     }
 
-    /**
+    private boolean thisFootmanWasAttackingTheDeadGuy(int footmanId, DeathLog deathLog, History.HistoryView historyView, int previousTurnNumber) {
+    	Map<Integer, ActionResult> actionResults = historyView.getCommandFeedback(footmanId, previousTurnNumber);   	
+    	if(actionResults.containsKey(footmanId) && actionResults.get(footmanId).getFeedback().equals(ActionFeedback.COMPLETED)){
+    		TargetedAction thing = (TargetedAction) actionResults.get(footmanId).getAction() ;
+    		return thing.getTargetId() == deathLog.getDeadUnitID();
+       	}
+    	return false; 
+	}
+
+	/**
      * Calculate the Q-Value for a given state action pair. The state in this scenario is the current
      * state view and the history of this episode. The action is the attacker and the enemy pair for the
      * SEPIA attack action.
@@ -270,25 +326,20 @@ public class RLAgent extends Agent {
      * @return The approximate Q-value
      */
     private double calcQValue(State.StateView stateView, History.HistoryView historyView, int attackerId, int defenderId) {
-    	double qValue = 0;
     	double[] featureValues = calculateFeatureVector(stateView, historyView, attackerId, defenderId);
+    	return calcQValueGivenFeatures(featureValues);
+    }
+    
+    private double calcQValueGivenFeatures(double[] featureValues) { 
+    	double qValue = 0;
     	for(int i = 0; i < NUM_FEATURES; i++){
     		qValue = qValue + weights[i] * featureValues[i];
     	}
         return qValue;
-    }
+	}
+
 
     /**
-     * Given a state and action calculate your features here. Please include a comment explaining what features
-     * you chose and why you chose them.
-     *
-     * All of your feature functions should evaluate to a double. Collect all of these into an array. You will
-     * take a dot product of this array with the weights array to get a Q-value for a given state action.
-     *
-     * It is a good idea to make the first value in your array a constant. This just helps remove any offset
-     * from 0 in the Q-function. The other features are up to you. Many are suggested in the assignment
-     * description.
-     *
      * @param stateView Current state of the SEPIA game
      * @param historyView History of the game up until this turn
      * @param attackerId Your footman. The one doing the attacking.
