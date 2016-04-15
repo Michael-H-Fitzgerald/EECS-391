@@ -22,8 +22,11 @@ import edu.cwru.sepia.action.TargetedAction;
 import edu.cwru.sepia.environment.model.history.DamageLog;
 import edu.cwru.sepia.environment.model.history.DeathLog;
 import edu.cwru.sepia.environment.model.history.History;
+import edu.cwru.sepia.environment.model.history.History.HistoryView;
 import edu.cwru.sepia.environment.model.state.State;
+import edu.cwru.sepia.environment.model.state.State.StateView;
 import edu.cwru.sepia.environment.model.state.Unit;
+import edu.cwru.sepia.environment.model.state.Unit.UnitView;
 
 public class RLAgent extends Agent {
 	private static final long serialVersionUID = 1L;
@@ -46,7 +49,7 @@ public class RLAgent extends Agent {
 	 */
 	public final Random random = new Random(12345);
 
-	public static final int NUM_FEATURES = 1;
+	public static final int NUM_FEATURES = 2;
 
 	public final int numEpisodes;
 	public int currentEpisode = 0;
@@ -217,7 +220,7 @@ public class RLAgent extends Agent {
 		double QValue = calcQValue(stateView, historyView, footmanId, toAttack);
 		double previousQValue = calcQValueGivenFeatures(oldFeatures);
 		for(int i = 0; i < NUM_FEATURES; i++){
-			newWeights[i] = oldWeights[i] - LEARNING_RATE * (-(totalReward + (GAMMA * QValue) - previousQValue) * calcFeatureValue(i));
+			newWeights[i] = oldWeights[i] - LEARNING_RATE * (-(totalReward + (GAMMA * QValue) - previousQValue) * calcFeatureValue(i, stateView, historyView, footmanId, toAttack));
 		}
 		return newWeights;
 	}
@@ -233,7 +236,7 @@ public class RLAgent extends Agent {
 	 */
 	private int selectAction(State.StateView stateView, History.HistoryView historyView, int attackerId) {
 		Double decider = random.nextDouble();
-		if(decider > 1 - EPSILON){
+		if(decider > 1 - EPSILON || inEvaluationEpisode){
 			return getArgMaxForQ(stateView, historyView, attackerId);
 		} else {
 			return enemyFootmen.get(random.nextInt(enemyFootmen.size()));
@@ -254,25 +257,6 @@ public class RLAgent extends Agent {
 	}
 
 	/**
-	 * Given the current state and the footman in question calculate the reward received on the last turn.
-	 * This is where you will check for things like Did this footman take or give damage? Did this footman die
-	 * or kill its enemy. Did this footman start an action on the last turn? See the assignment description
-	 * for the full list of rewards.
-	 *
-	 * Remember that you will need to discount this reward based on the timestep it is received on. See
-	 * the assignment description for more details.
-	 *
-	 *
-	 * You will do something similar for the deaths. See the middle step documentation for a snippet
-	 * showing how to use the deathLogs.
-	 *
-	 * To see if a command was issued you can check the commands issued log.
-	 *
-	 * Map<Integer, Action> commandsIssued = historyView.getCommandsIssued(playernum, lastTurnNumber);
-	 * for (Map.Entry<Integer, Action> commandEntry : commandsIssued.entrySet()) {
-	 *     System.out.println("Unit " + commandEntry.getKey() + " was command to " + commandEntry.getValue().toString);
-	 * }
-	 *
 	 * @param stateView The current state of the game.
 	 * @param historyView History of the episode up until this turn.
 	 * @param footmanId The footman ID you are looking for the reward from.
@@ -316,12 +300,6 @@ public class RLAgent extends Agent {
 	}
 
 	/**
-	 * Calculate the Q-Value for a given state action pair. The state in this scenario is the current
-	 * state view and the history of this episode. The action is the attacker and the enemy pair for the
-	 * SEPIA attack action.
-	 *
-	 * This returns the Q-value according to your feature approximation. This is where you will calculate
-	 * your features and multiply them by your current weights to get the approximate Q-value.
 	 *
 	 * @param stateView Current SEPIA state
 	 * @param historyView Episode history up to this point in the game
@@ -354,21 +332,59 @@ public class RLAgent extends Agent {
 		double[] featureValues = new double[NUM_FEATURES];
 
 		for(int i = 0; i < NUM_FEATURES; i++){
-			featureValues[i] = calcFeatureValue(i);
+			featureValues[i] = calcFeatureValue(i, stateView, historyView, attackerId, defenderId);
 		}
 
 		return featureValues;
 	}
 
-	private double calcFeatureValue(int featureId){
+	private double calcFeatureValue(int featureId, State.StateView stateView, History.HistoryView historyView, int attackerId, int defenderId){
 		double result = 0;
 		switch(featureId){
 		case 0:
 			result = 1;
 			break;
+		case 1:
+			result = isClosestEnemy(stateView, historyView, attackerId, defenderId);
+			break;
 		}
 		return result;
 	}
+	
+//	Is e my closest enemy in terms of Chebyshev distance?” Some useful features are “coordination” features such as “How
+//	many other footmen are currently attacking e?”. Some others are “reflective” features such as “Is e an
+//	enemy that is currently attacking me?” Yet other features could be things like “What is the ratio of the
+//		hitpoints of e to me?”
+
+	private double isClosestEnemy(StateView stateView, HistoryView historyView, int attackerId, int defenderId) {
+		int closestEnemy = getClosestEnemy(stateView, historyView, attackerId);
+		if(closestEnemy == defenderId ){
+			return 1;
+		}
+		return 0;
+	}
+	
+
+	private int getClosestEnemy(StateView stateView, HistoryView historyView, int attackerId) {
+		int closestEnemyId = -1;
+		double closestDistance = Double.MAX_VALUE;
+		UnitView attacker = stateView.getUnit(attackerId);
+		int attackerX = attacker.getXPosition();
+		int attackerY = attacker.getYPosition();
+		for(Integer enemyId : enemyFootmen){
+			UnitView defender = stateView.getUnit(enemyId);
+			int defenderX = defender.getXPosition();
+			int defenderY = defender.getYPosition();
+			double distance = Math.max(Math.abs(attackerX - defenderX), Math.abs(attackerY - defenderY));
+			if(distance < closestDistance){
+				closestDistance = distance;
+				closestEnemyId = enemyId;
+			}
+		}
+		return closestEnemyId;
+	}
+	
+	
 
 	/**
 	 * DO NOT CHANGE THIS!
