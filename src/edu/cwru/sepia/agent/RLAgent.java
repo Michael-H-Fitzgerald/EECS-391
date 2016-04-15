@@ -49,7 +49,7 @@ public class RLAgent extends Agent {
 	 */
 	public final Random random = new Random(12345);
 
-	public static final int NUM_FEATURES = 2;
+	public static final int NUM_FEATURES = 4;
 
 	public final int numEpisodes;
 	public int currentEpisode = 0;
@@ -347,14 +347,34 @@ public class RLAgent extends Agent {
 		case 1:
 			result = isClosestEnemy(stateView, historyView, attackerId, defenderId);
 			break;
+		case 2:
+			result = numberOfFootmenAttacking(stateView, historyView, defenderId);
+			break;
+		case 3:
+			result = isEnemyAttackingMe(stateView, historyView, attackerId, defenderId);
+			break;
 		}
 		return result;
 	}
 	
-//	Is e my closest enemy in terms of Chebyshev distance?” Some useful features are “coordination” features such as “How
-//	many other footmen are currently attacking e?”. Some others are “reflective” features such as “Is e an
+//	 Some others are “reflective” features such as “Is e an
 //	enemy that is currently attacking me?” Yet other features could be things like “What is the ratio of the
 //		hitpoints of e to me?”
+
+	private double isEnemyAttackingMe(StateView stateView, HistoryView historyView, int myFootmanId, int enemyFootmanId) {
+		int previousTurnNumber = stateView.getTurnNumber() - 1;
+		if(previousTurnNumber < 0){
+			return 0;
+		}
+		Map<Integer, Action> commandsIssued = historyView.getCommandsIssued(ENEMY_PLAYERNUM, previousTurnNumber);
+		for(Action action : commandsIssued.values()){
+			TargetedAction targetedAction = (TargetedAction) action;
+			if(targetedAction.getTargetId() == myFootmanId && targetedAction.getUnitId() == enemyFootmanId){
+				return 1;
+			}
+		}
+		return 0;
+	}
 
 	private double isClosestEnemy(StateView stateView, HistoryView historyView, int attackerId, int defenderId) {
 		int closestEnemy = getClosestEnemy(stateView, historyView, attackerId);
@@ -362,6 +382,22 @@ public class RLAgent extends Agent {
 			return 1;
 		}
 		return 0;
+	}
+	
+	private double numberOfFootmenAttacking(StateView stateView, HistoryView historyView, int defenderId) {
+		int previousTurnNumber = stateView.getTurnNumber() - 1;
+		if(previousTurnNumber < 0){
+			return 0;
+		}
+		Map<Integer, Action> commandsIssued = historyView.getCommandsIssued(playernum, previousTurnNumber);
+		int count = 0;
+		for(Action action : commandsIssued.values()){
+			TargetedAction targetedAction = (TargetedAction) action;
+			if(targetedAction.getTargetId() == defenderId){
+				count++;
+			}
+		}
+		return count;
 	}
 	
 
