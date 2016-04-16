@@ -49,7 +49,7 @@ public class RLAgent extends Agent {
 	 */
 	public final Random random = new Random(12345);
 
-	public static final int NUM_FEATURES = 6;
+	public static final int NUM_FEATURES = 7;
 
 	public final int numEpisodes;
 	public int currentEpisode = 0;
@@ -158,9 +158,9 @@ public class RLAgent extends Agent {
 		for(DeathLog deathLog : deathLogs){
 			if(deathLog.getController() == ENEMY_PLAYERNUM){
 				enemyFootmen.remove(((Integer) deathLog.getDeadUnitID()));
-				debug("Bad guy died.");
+//				debug("Bad guy died.");
 			} else {
-				debug("Good guy died.");
+//				debug("Good guy died.");
 				myFootmen.remove(((Integer) deathLog.getDeadUnitID()));
 				double reward = calculateReward(stateView, historyView, deathLog.getDeadUnitID());
 				cumulativeReward = cumulativeReward + reward;
@@ -398,8 +398,15 @@ public class RLAgent extends Agent {
 		case 5:
 			result = enemiesThatCanAttackMe(stateView, historyView, attackerId);
 			break;
+		case 6:
+			result = myHp(stateView, attackerId);
+			break;
 		}
 		return result;
+	}
+
+	private double myHp(StateView stateView, int attackerId) {
+		return stateView.getUnit(attackerId).getHP();
 	}
 
 	private double enemiesThatCanAttackMe(StateView stateView, HistoryView historyView, int attackerId) {
