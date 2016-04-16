@@ -49,7 +49,7 @@ public class RLAgent extends Agent {
 	 */
 	public final Random random = new Random(12345);
 
-	public static final int NUM_FEATURES = 5;
+	public static final int NUM_FEATURES = 6;
 
 	public final int numEpisodes;
 	public int currentEpisode = 0;
@@ -132,10 +132,8 @@ public class RLAgent extends Agent {
 		calcRewardAndUpdateWeights(stateView, historyView, previousTurnNumber); 
 		if(eventOccured(historyView, previousTurnNumber)){
 			marchingOrders = generateActions(stateView, historyView);
-		} else {
-			Map<Integer, Action> commandsIssued = historyView.getCommandsIssued(playernum, previousTurnNumber);
-			marchingOrders = commandsIssued;
 		}
+		
 		return marchingOrders;
 	}
 
@@ -155,7 +153,7 @@ public class RLAgent extends Agent {
 
 	private void calcRewardAndUpdateWeights(State.StateView stateView, History.HistoryView historyView,
 			int previousTurnNumber) {
-		Map<Integer, Action> commandsIssued = historyView.getCommandsIssued(playernum, previousTurnNumber);
+		Map<Integer, ActionResult> commandsIssued = historyView.getCommandFeedback(playernum, previousTurnNumber);
 		List<DeathLog> deathLogs = historyView.getDeathLogs(previousTurnNumber);
 		for(DeathLog deathLog : deathLogs){
 			if(deathLog.getController() == ENEMY_PLAYERNUM){
@@ -173,7 +171,7 @@ public class RLAgent extends Agent {
 			for(Integer attackerId : myFootmen){
 				double reward = calculateReward(stateView, historyView, attackerId);
 				cumulativeReward = cumulativeReward + reward;
-				int defenderId = ((TargetedAction) commandsIssued.get(attackerId)).getTargetId();
+				int defenderId = ((TargetedAction) commandsIssued.get(attackerId).getAction()).getTargetId();
 				updateWeightsHelper(stateView, historyView, reward, attackerId, defenderId);
 			}
 		}
@@ -198,6 +196,9 @@ public class RLAgent extends Agent {
 			}
 		}
 	}
+	
+	int numWin = 0;
+	int numLose = 0;
 
 	/**
 	 * Here you will calculate the cumulative average rewards for your testing episodes. If you have just
@@ -214,8 +215,10 @@ public class RLAgent extends Agent {
 		}
 		if(findFootmen(stateView, playernum).isEmpty()){
 			System.out.println("Lose");
+			numLose++;
 		} else {
 			System.out.println("Win!!!!!!!!!!");
+			numWin++;
 		}
 		currentPhaseEpisodeCount++;
 		if(inEvaluationEpisode){
@@ -233,8 +236,8 @@ public class RLAgent extends Agent {
 		}
 		saveWeights(weights);
 		currentEpisode++;
-		if(currentEpisode == 15){
-			System.out.println("sldfkjsd");
+		if(currentEpisode == 1000){
+			System.out.println("Num Wins: " + numWin + " Num Lost: " + numLose + "   " + numWin/numLose + "   " + numWin/1000 + "   " + numLose/1000);
 		}
 		if(currentEpisode > numEpisodes){
 			System.exit(0);
@@ -273,7 +276,7 @@ public class RLAgent extends Agent {
 	 */
 	private int selectAction(State.StateView stateView, History.HistoryView historyView, int attackerId) {
 		Double decider = random.nextDouble();
-		if(decider > 1 - EPSILON || inEvaluationEpisode){
+		if(decider < 1 - EPSILON || inEvaluationEpisode){
 			return getArgMaxForQ(stateView, historyView, attackerId);
 		} else {
 			return enemyFootmen.get(random.nextInt(enemyFootmen.size()));
@@ -391,8 +394,28 @@ public class RLAgent extends Agent {
 			break;
 		case 4:
 			result = ratioOfHitPoints(stateView, attackerId, defenderId);
+			break;
+		case 5:
+			result = enemiesThatCanAttackMe(stateView, historyView, attackerId);
+			break;
 		}
 		return result;
+	}
+
+	private double enemiesThatCanAttackMe(StateView stateView, HistoryView historyView, int attackerId) {
+		int count = 0;
+		UnitView attacker = stateView.getUnit(attackerId);
+		int attackerX = attacker.getXPosition();
+		int attackerY = attacker.getYPosition();
+		for(Integer enemyId : enemyFootmen){
+			UnitView enemy = stateView.getUnit(enemyId);
+			int enemyX = enemy.getXPosition();
+			int enemyY = enemy.getYPosition();
+			if(getDistance(attackerX, enemyX, attackerY, enemyY) < 2){
+				count++;
+			}
+		}
+		return count;
 	}
 
 	private double ratioOfHitPoints(StateView stateView, int attackerId, int defenderId) {
@@ -442,13 +465,18 @@ public class RLAgent extends Agent {
 			UnitView defender = stateView.getUnit(enemyId);
 			int defenderX = defender.getXPosition();
 			int defenderY = defender.getYPosition();
-			double distance = Math.max(Math.abs(attackerX - defenderX), Math.abs(attackerY - defenderY));
+			double distance = getDistance(attackerX, defenderX, attackerY, defenderY);
 			if(distance < closestDistance){
 				closestDistance = distance;
 				closestEnemyId = enemyId;
 			}
 		}
 		return closestEnemyId;
+	}
+	
+
+	private double getDistance(int x1, int x2, int y1, int y2){
+		return Math.max(Math.abs(x1 - x2), Math.abs(y1 - y2));
 	}
 	
 	private double isEnemyAttackingMe(StateView stateView, HistoryView historyView, int myFootmanId, int enemyFootmanId) {
