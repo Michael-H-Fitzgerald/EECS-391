@@ -49,7 +49,7 @@ public class RLAgent extends Agent {
 	 */
 	public final Random random = new Random(12345);
 
-	public static final int NUM_FEATURES = 7;
+	public static final int NUM_FEATURES = 9;
 
 	private final int numEpisodes;
 	private int currentEpisode = 0;
@@ -99,13 +99,16 @@ public class RLAgent extends Agent {
 		enemyFootmen = findFootmen(stateView, ENEMY_PLAYERNUM);
 		return middleStep(stateView, historyView);
 	}
+	private State.StateView previousState;
 
 	/**
 	 *
 	 * @return New actions to execute or nothing if an event has not occurred.
 	 */
+	private boolean awardedDeathPoints;
 	@Override
 	public Map<Integer, Action> middleStep(State.StateView stateView, History.HistoryView historyView) {
+		awardedDeathPoints = false;
 		int previousTurnNumber = stateView.getTurnNumber() - 1;
 		Map<Integer, Action> marchingOrders = new HashMap<>();
 		if(previousTurnNumber < 0){
@@ -116,7 +119,7 @@ public class RLAgent extends Agent {
 		if(eventOccured(historyView, previousTurnNumber)){
 			marchingOrders = generateActions(stateView, historyView);
 		}
-		
+		previousState = stateView;
 		return marchingOrders;
 	}
 	
@@ -165,7 +168,7 @@ public class RLAgent extends Agent {
 			} else {
 				myFootmen.remove(((Integer) deathLog.getDeadUnitID()));
 				double reward = calculateReward(stateView, historyView, deathLog.getDeadUnitID());
-				cumulativeReward = cumulativeReward + reward;
+				cumulativeReward = cumulativeReward + reward; // dave weihts? TODO
 			}
 		}
 		
@@ -191,7 +194,7 @@ public class RLAgent extends Agent {
 			}
 			double[] newWeights = 
 					updateWeights(	oldWeights, 
-							calculateFeatureVector(stateView, historyView, attackerId, defenderId),
+							calculateFeatureVector(previousState, historyView, attackerId, defenderId),
 							totalReward,
 							stateView,
 							historyView,
@@ -269,7 +272,10 @@ public class RLAgent extends Agent {
 
 		for(DeathLog deathLog : historyView.getDeathLogs(previousTurnNumber)){
 			if(deathLog.getController() == ENEMY_PLAYERNUM && thisFootmanWasAttackingTheDeadGuy(footmanId, deathLog, historyView, previousTurnNumber)){
-				reward = reward + 100;
+				if(!awardedDeathPoints){
+					reward = reward + 100;
+					awardedDeathPoints = true;
+				}
 			} else if(deathLog.getDeadUnitID() == footmanId) {
 				reward = reward - 100;
 			}
@@ -363,8 +369,28 @@ public class RLAgent extends Agent {
 		case 6:
 			result = featureMyHp(stateView, friendId);
 			break;
+		case 7:
+			result = featurePreviouslyAttacking(stateView, historyView, friendId, enemyId);
+			break;
+		case 8:
+			result = featureEnemyHealth(stateView, enemyId);
+			break;
 		}
 		return result;
+	}
+
+	private double featureEnemyHealth(StateView stateView, int enemyId) {
+		UnitView enemy = stateView.getUnit(enemyId);		
+		return enemy == null ? 0 : enemy.getHP();
+	}
+
+	private double featurePreviouslyAttacking(StateView stateView, HistoryView historyView, int friendId, int enemyId) {
+		Map<Integer, Action> commandsIssued = historyView.getCommandsIssued(playernum, stateView.getTurnNumber() - 1);
+		TargetedAction targetedAction = (TargetedAction) commandsIssued.get(friendId);
+		if(targetedAction == null){
+			return 0;
+		}
+		return targetedAction.getTargetId() == enemyId ? 1 : 0;
 	}
 
 	private double featureMyHp(StateView stateView, int attackerId) {
