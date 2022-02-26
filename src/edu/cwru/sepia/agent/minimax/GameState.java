@@ -1,555 +1,598 @@
 package edu.cwru.sepia.agent.minimax;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import edu.cwru.sepia.action.Action;
+import edu.cwru.sepia.action.ActionType;
 import edu.cwru.sepia.action.DirectedAction;
 import edu.cwru.sepia.action.TargetedAction;
+import edu.cwru.sepia.environment.model.state.ResourceNode;
 import edu.cwru.sepia.environment.model.state.State;
+import edu.cwru.sepia.environment.model.state.Unit;
 import edu.cwru.sepia.util.Direction;
+import edu.cwru.sepia.util.DistanceMetrics;
+import org.omg.CORBA.ARG_IN;
 
+import javax.xml.soap.Node;
+import java.util.*;
+
+/**
+ * This class stores all of the information the agent needs to know about the
+ * state of the game. For example this might include things like footmen HP and
+ * positions.
+ *
+ * Add any information or methods you would like to this class, but do not
+ * delete or change the signatures of the provided methods.
+ */
 public class GameState {
-	public static final double MAX_UTILITY = Double.POSITIVE_INFINITY;
-	public static final double MIN_UTILITY = Double.NEGATIVE_INFINITY;
-	public static final String ACTION_MOVE_NAME = Action.createPrimitiveMove(0, null).getType().name();
-	public static final String ACTION_ATTACK_NAME = Action.createPrimitiveAttack(0, 0).getType().name();
+    public int numAttack = 0;
+    public State.StateView savedState;
+    public int yExtent;
+    public int xExtent;
+    public List<Integer> resourceIDs;
+    public List<Integer> playerIDs;
+    public List<Integer> enemyIDs;
+    public int numPlayers;
+    public int numArchers;
+    public ArrayList<NodeState> units = new ArrayList<NodeState>();
+    public ArrayList<MapLocation> resourceLocs = new ArrayList<MapLocation>();
+    public double heuristic = 0;
 
-	private Board board;
-	private boolean ourTurn;
-	private boolean utilityCalculated = false;
-	private double utility = 0.0;
+    class MapLocation {
+        public int x, y;
+        public float cost;
+        public MapLocation cameFrom;
 
-	/**
-	 * Class containing agents and resources (with locations) and several helper methods
-	 */
-	private class Board {
-		private Square[][] board;
-		private Map<Integer, Agent> agents = new HashMap<Integer, Agent>(4);
-		private ArrayList<Agent> goodAgents = new ArrayList<Agent>(2);
-		private ArrayList<Agent> badAgents = new ArrayList<Agent>(2);
-		private Map<Integer, Resource> resources = new HashMap<Integer, Resource>();
-		private int width;
-		private int height;
+        public MapLocation(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
 
-		public Board(int x, int y){
-			board = new Square[x][y];
-			this.width = x;
-			this.height = y;
-		}
+        public int hashCode() {
+            return Arrays.hashCode(new Object[] { x, y });
+        }
 
-		public void addResource(int id, int x, int y){
-			Resource resource = new Resource(id, x, y);
-			board[x][y] = resource;
-			resources.put(resource.getId(), resource);
-		}
+        public String toString() {
+            return " {" + this.x + "," + this.y + "}" + " camefrom: " + cameFrom;
+        }
 
-		public void addAgent(int id, int x, int y, int hp, int possibleHp, int attackDamage, int attackRange){
-			Agent agent = new Agent(id, x, y, hp, possibleHp, attackDamage, attackRange);
-			board[x][y] = agent;
-			agents.put(id, agent);
-			if(agent.isGood()){
-				goodAgents.add(agent);
-			} else {
-				badAgents.add(agent);
-			}
-		}
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this)
+                return true;
 
-		private void moveAgentBy(int id, int xOffset, int yOffset){
-			Agent agent = getAgent(id);
-			int currentX = agent.getX();
-			int currentY = agent.getY();
-			int nextX = currentX + xOffset;
-			int nextY = currentY + yOffset;
-			board[currentX][currentY] = null;
-			agent.setX(nextX);
-			agent.setY(nextY);
-			board[nextX][nextY] = agent;
-		}
+            MapLocation loc = (MapLocation) obj;
+            if (obj != null && loc.x == this.x && loc.y == this.y)
+                return true;
+            else
+                return false;
+        }
 
-		public void attackAgent(Agent attacker, Agent attacked){
-			if(attacked != null && attacker != null){
-				attacked.setHp(attacked.getHp() - attacker.getAttackDamage());
-			}
-		}
+    }
 
-		public boolean isEmpty(int x, int y){
-			return board[x][y] == null;
-		}
+    public class NodeState {
+        int xPos, yPos, unitHP, ID, range, basicAttack, type;
 
-		public boolean isResource(int x, int y){
-			return board[x][y] != null && resources.containsKey(board[x][y].id);
-		}
+        public NodeState(int x, int y, int id, int unitHP, int basicAttack, int range, int type) {
+            this.xPos = x;
+            this.yPos = y;
+            this.unitHP = unitHP;
+            this.ID = id;
+            this.range = range;
+            this.basicAttack = basicAttack;
+            this.type = type;
+        }
 
-		public boolean isOnBoard(int x, int y){
-			return x >= 0 && x < width && y >= 0 && y < height; 
-		}
+        public NodeState(NodeState nodeState) {
+            this.xPos = nodeState.xPos;
+            this.yPos = nodeState.yPos;
+            this.unitHP = nodeState.unitHP;
+            this.ID = nodeState.ID;
+            this.range = nodeState.range;
+            this.basicAttack = nodeState.basicAttack;
+            this.type = nodeState.type;
+        }
+    }
 
-		public Agent getAgent(int id) {
-			Agent agent = agents.get(id);
-			if(!agent.isAlive()){
-				return null;
-			}
-			return agent;
-		}
+    /**
+     * You will implement this constructor. It will extract all of the needed state
+     * information from the built in SEPIA state view.
+     * <p>
+     * You may find the following state methods useful:
+     * <p>
+     * state.getXExtent() and state.getYExtent(): get the map dimensions
+     * state.getAllResourceIDs(): returns the IDs of all of the obstacles in the map
+     * state.getResourceNode(int resourceID): Return a ResourceView for the given ID
+     * <p>
+     * For a given ResourceView you can query the position using
+     * resource.getXPosition() and resource.getYPosition()
+     * <p>
+     * You can get a list of all the units belonging to a player with the following
+     * command: state.getUnitIds(int playerNum): gives a list of all unit IDs
+     * beloning to the player. You control player 0, the enemy controls player 1.
+     * <p>
+     * In order to see information about a specific unit, you must first get the
+     * UnitView corresponding to that unit. state.getUnit(int id): gives the
+     * UnitView for a specific unit
+     * <p>
+     * With a UnitView you can find information about a given unit
+     * unitView.getXPosition() and unitView.getYPosition(): get the current location
+     * of this unit unitView.getHP(): get the current health of this unit
+     * <p>
+     * SEPIA stores information about unit types inside TemplateView objects. For a
+     * given unit type you will need to find statistics from its Template View.
+     * unitView.getTemplateView().getRange(): This gives you the attack range
+     * unitView.getTemplateView().getBasicAttack(): The amount of damage this unit
+     * type deals unitView.getTemplateView().getBaseHealth(): The initial amount of
+     * health of this unit type
+     *
+     * @param state Current state of the episode
+     */
+    State.StateView state;
 
-		public Collection<Agent> getAllAgents() {
-			return agents.values();
-		}
-		
-		public Collection<Agent> getAliveGoodAgents(){
-			return goodAgents.stream().filter(e -> e.isAlive()).collect(Collectors.toList());
-		}
+    public GameState(State.StateView state) {
+        yExtent = state.getYExtent();
+        savedState = state;
+        xExtent = state.getXExtent();
+        resourceIDs = state.getAllResourceIds();
+        playerIDs = state.getUnitIds(0);
+        enemyIDs = state.getUnitIds(1);
+        numArchers = enemyIDs.size();
+        numPlayers = playerIDs.size();
+        this.state = state;
+        int i = 0;
+        // this will always fill up with 2 players to start and then 1 or 2 depending on
+        // how many alive
+        for (Integer unitID : playerIDs) {
+            units.add(new NodeState(state.getUnit(playerIDs.get(i)).getXPosition(),
+                    state.getUnit(playerIDs.get(i)).getYPosition(), state.getUnit(playerIDs.get(i)).getID(),
+                    state.getUnit(playerIDs.get(i)).getHP(),
+                    state.getUnit(playerIDs.get(i)).getTemplateView().getBasicAttack(),
+                    state.getUnit(playerIDs.get(i)).getTemplateView().getRange(), 0 // 0 for player units
+            ));
+            i++;
+        }
+        i = 0;
+        // this will either fill up with 1 or 2 archers
+        for (Integer unitID : enemyIDs) {
+            units.add( new NodeState(state.getUnit(enemyIDs.get(i)).getXPosition(),
+                    state.getUnit(enemyIDs.get(i)).getYPosition(), state.getUnit(enemyIDs.get(i)).getID(),
+                    state.getUnit(enemyIDs.get(i)).getHP(),
+                    state.getUnit(enemyIDs.get(i)).getTemplateView().getBasicAttack(),
+                    state.getUnit(enemyIDs.get(i)).getTemplateView().getRange(), 1) // 1 for archer units
+            );
+            i++;
+        }
+        for (Integer resourceID : resourceIDs) {
+            ResourceNode.ResourceView resource = state.getResourceNode(resourceID);
+            resourceLocs.add(new MapLocation(resource.getXPosition(), resource.getYPosition()));
+        }
+    }
+    public GameState(GameState gameState) {
+        yExtent = gameState.yExtent;
+        savedState = gameState.state;
+        xExtent = gameState.xExtent;
+        resourceIDs = gameState.resourceIDs;
+        playerIDs = gameState.playerIDs;
+        enemyIDs = gameState.enemyIDs;
+        numArchers = gameState.numArchers;
+        numPlayers = gameState.numPlayers;
+        units = gameState.units;
+        resourceLocs = gameState.resourceLocs;
+    }
 
-		public Collection<Agent> getAliveBadAgents(){
-			return badAgents.stream().filter(e -> e.isAlive()).collect(Collectors.toList());
-		}
+    /**
+     * You will implement this function.
+     * <p>
+     * You should use weighted linear combination of features. The features may be
+     * primitives from the state (such as hp of a unit) or they may be higher level
+     * summaries of information from the state such as distance to a specific
+     * location. Come up with whatever features you think are useful and weight them
+     * appropriately.
+     * <p>
+     * It is recommended that you start simple until you have your algorithm
+     * working. Then watch your agent play and try to add features that correct
+     * mistakes it makes. However, remember that your features should be as fast as
+     * possible to compute. If the features are slow then you will be able to do
+     * less plys in a turn.
+     * <p>
+     * Add a good comment about what is in your utility and why you chose those
+     * features.
+     *
+     * @return The weighted linear combination of the features
+     */
+    public double getUtility(GameState a1) {
+        double distanceUtil = 0;
+        int numFootmen;
+        if (a1.playerIDs.size() < 2) {
+            numFootmen = 1;
+        } else
+            numFootmen = 2;
 
-		public double distance(Square agent1, Square agent2) {
-			return (Math.abs(agent1.getX() - agent2.getX()) + Math.abs(agent1.getY() - agent2.getY())) - 1;
-		}
+        //look through the footmen and archer, and calculate the min distance between archers and footmen
+        //to include in the utility value
+        double pythag1 = Integer.MAX_VALUE;
+        double pythag2 = Integer.MAX_VALUE;
+        double pythag3 = Integer.MAX_VALUE;
+        double pythag4 = Integer.MAX_VALUE;
 
-		public double attackDistance(Agent agent1, Agent agent2){
-			return Math.floor(Math.hypot(Math.abs(agent1.getX() - agent2.getX()), Math.abs(agent1.getY() - agent2.getY())));
-		}
+        // unit 1 and archer 1
+        pythag1 = getDist2(a1.units.get(0).xPos, a1.units.get(0).yPos, a1.units.get(numFootmen).xPos, a1.units.get(numFootmen).yPos);
+//        double changeX1 = Math.abs(a1.units.get(0).xPos - a1.units.get(0).xPos);
+//        double changeY1 = Math.abs(a1.units.get(0).yPos - a1.units.get(0).yPos);
+        //Math.sqrt(changeX1 * changeX1 + changeY1 * changeY1);
 
-		private List<Integer> findAttackableAgents(Agent agent) {
-			List<Integer> attackable = new ArrayList<Integer>();
-			for(Agent otherAgent : getAllAgents()){
-				if(otherAgent.getId() != agent.getId() && (otherAgent.isGood() != agent.isGood()) && 
-						attackDistance(agent, otherAgent) <= agent.getAttackRange()){
-					attackable.add(otherAgent.getId());
-				}
-			}
-			return attackable;
-		}
-	}
+        if (a1.numArchers > 1) {
+            // unit 1 and archer2
+            pythag2 = getDist2(a1.units.get(0).xPos, a1.units.get(0).yPos, a1.units.get(1+numFootmen).xPos, a1.units.get(1+numFootmen).yPos);
+//            double changeX2 = Math.abs(a1.units.get(0).xPos - a1.units.get(numFootmen + 1).xPos);
+//            double changeY2 = Math.abs(a1.units.get(0).yPos - a1.units.get(numFootmen + 1).yPos);
+//            pythag2 = Math.sqrt(changeX2 * changeX2 + changeY2 * changeY2);
 
-	/**
-	 * Represents a single location or square on the playing board
-	 */
-	private abstract class Square {
-		private int id;
-		private int x;
-		private int y;
+        }
+        if (numFootmen > 1) {
+            // unit 2 and archer 1
+            pythag3 = getDist2(a1.units.get(1).xPos, a1.units.get(1).yPos, a1.units.get(numFootmen).xPos, a1.units.get(numFootmen).yPos);
+//            double changeX3 = Math.abs(a1.units.get(1).xPos - a1.units.get(numFootmen).xPos);
+//            double changeY3 = Math.abs(a1.units.get(1).yPos - a1.units.get(numFootmen).yPos);
+//            pythag3 = Math.sqrt(changeX3 * changeX3 + changeY3 * changeY3);
 
-		public Square(int id, int x, int y){
-			this.id = id;
-			this.x = x;
-			this.y = y;
-		}
-		public int getId(){
-			return this.id;
-		}
-		public int getX(){
-			return this.x;
-		}
-		public void setX(int x){
-			this.x = x;
-		}
-		public int getY(){
-			return this.y;
-		}
-		public void setY(int y){
-			this.y = y;
-		}
-	}
+            if (a1.numArchers > 1) {
+                // unit 2 and archer 2
+                pythag4 = getDist2(a1.units.get(1).xPos, a1.units.get(1).yPos, a1.units.get(numFootmen+1).xPos, a1.units.get(1+numFootmen).yPos);
+//                double changeX4 = Math.abs(a1.units.get(1).xPos - a1.units.get(numFootmen + 1).xPos);
+//                double changeY4 = Math.abs(a1.units.get(1).yPos - a1.units.get(numFootmen + 1).yPos);
+//                pythag4 = Math.sqrt(changeX4 * changeX4 + changeY4 * changeY4);
 
-	/** 
-	 * A representation of an agent either good (footman) or bad (archer)
-	 *
-	 */
-	private class Agent extends Square {
-		private int hp;
-		private int possibleHp;
-		private int attackDamage;
-		private int attackRange;
+            }
+        }
+        // finds the min dist between players and archers
 
-		public Agent(int id, int x, int y, int hp, int possibleHp, int attackDamage, int attackRange) {
-			super(id, x, y);
-			this.hp = hp;
-			this.possibleHp = possibleHp;
-			this.attackDamage = attackDamage;
-			this.attackRange = attackRange;
-		}
+        if (numFootmen > 1) distanceUtil += Math.min(pythag3, pythag4) + Math.min(pythag1,pythag2);
+        else distanceUtil = Math.min(pythag1, pythag2);
 
-		public boolean isGood(){
-			return this.getId() == 0 || this.getId() == 1;
-		}
+        //Now calculate the hpUtil
+        int hpUtil = 0;
+        for (int i = 0; i < numFootmen + a1.numArchers; i++) {
+            if (a1.units.get(i).type == 0) {
+                hpUtil += a1.units.get(i).unitHP;
+            }
+            else
+                hpUtil -= a1.units.get(i).unitHP;
+        }
+        // find trees in area
+        double resources = 0;
+        // for each footman
+        for (int j = 0; j < numFootmen; j++) {
+            // for each space around him check resource locs
+            for (MapLocation resource : resourceLocs) {
+                if (a1.units.get(j).xPos+1 == resource.x && a1.units.get(j).yPos+1 == resource.y) resources++;
+                if (a1.units.get(j).xPos+1 == resource.x && a1.units.get(j).yPos == resource.y) resources++;
+                if (a1.units.get(j).xPos+1 == resource.x && a1.units.get(j).yPos-1 == resource.y) resources++;
+                if (a1.units.get(j).xPos == resource.x && a1.units.get(j).yPos-1 == resource.y) resources++;
+                if (a1.units.get(j).xPos-1 == resource.x && a1.units.get(j).yPos-1 == resource.y) resources++;
+                if (a1.units.get(j).xPos-1 == resource.x && a1.units.get(j).yPos == resource.y) resources++;
+                if (a1.units.get(j).xPos-1 == resource.x && a1.units.get(j).yPos+1 == resource.y) resources++;
+                if (a1.units.get(j).xPos == resource.x && a1.units.get(j).yPos+1 == resource.y) resources++;
+            }
+        }
+// make the total utility = hpUtil - a scalar of distanceUtil - scalar of resources nearby
+        double addAttack = 0;
+        if(addAttack == 1){
+            addAttack = 100;
+        }else if(addAttack == 2){
+            addAttack = 100;
+        }
+        System.out.println(distanceUtil);
+        return - (5*distanceUtil) - (5*resources) + addAttack;
+    }
 
-		public boolean isAlive() {
-			return hp > 0;
-		}
 
-		private int getHp() {
-			return hp;
-		}
-		private void setHp(int hp) {
-			this.hp = hp;
-		}
-		private int getPossibleHp() {
-			return possibleHp;
-		}
-		private int getAttackDamage() {
-			return attackDamage;
-		}
-		private int getAttackRange() {
-			return attackRange;
-		}
-	}
 
-	/**
-	 * A representation of non-agents on the board - trees
-	 *
-	 */
-	private class Resource extends Square {
-		public Resource(int id, int x, int y) {
-			super(id, x, y);
-		}
-	}
+    int getDist2(int u1x, int u1y, int u2x, int u2y) {
+        //System.out.println(DistanceMetrics.chebyshevDistance(u1x, u1y, u2x, u2y));
+        return DistanceMetrics.chebyshevDistance(u1x, u1y, u2x, u2y);
+    }
 
-	/**
-	 * Constructor that takes from a SEPIA state view to generate my representation of state
-	 * 
-	 * This is only called on the initial state all children state are generated by the other constructor.
-	 * 
-	 * @param state
-	 */
-	public GameState(State.StateView state) {
-		this.board = new Board(state.getXExtent(), state.getYExtent());
-		state.getAllUnits().stream().forEach( (e) -> {
-			this.board.addAgent(e.getID(), e.getXPosition(), e.getYPosition(), e.getHP(), e.getHP(), e.getTemplateView().getBasicAttack(), e.getTemplateView().getRange());
-		});
 
-		state.getAllResourceNodes().stream().forEach( (e) -> {
-			this.board.addResource(e.getID(), e.getXPosition(), e.getYPosition());
-		});
 
-		this.ourTurn = true;
-	}   
 
-	/**
-	 * This constructor uses the non-SEPIA representation of the game and is called for all
-	 * except the first creation of a GameState
-	 * 
-	 * @param gameState
-	 */
-	public GameState(GameState gameState) {
-		this.board = new Board(gameState.board.width, gameState.board.height);
-		gameState.board.getAllAgents().stream().forEach( (e) -> {
-			this.board.addAgent(e.getId(), e.getX(), e.getY(), e.getHp(), e.getPossibleHp(), e.getAttackDamage(), e.getAttackRange());			
-		});
+//    public double getUtility(GameState a1,boolean turn) {
+//        int partner1;
+//        int partner2;
+//        int partner;
+//        int[] closest1;
+//        int[] closest2;
+//        double distanceUtil;
+//        // finds the min dist between players and archers
+//        if (turn) {
+//            partner1 = 0;
+//            partner2 = 1;
+//        } else if(!turn && a1.playerIDs.size() > 1){
+//            partner1 = 2;
+//            partner2 = 3;
+//        }else{
+//            partner1 = 1;
+//            partner2 = 2;
+//        }
+//
+//        if ((turn && playerIDs.size() > 1) || (!turn && enemyIDs.size() > 1)) {
+//            NodeState agent1 = units.get(partner1);
+//            NodeState agent2 = units.get(partner2);
+//            if(turn) {
+//                closest1 = getClosest(a1.state, agent1.ID, enemyIDs);
+//                closest2 = getClosest(a1.state, agent2.ID, enemyIDs);
+//                distanceUtil = closest1[1] + closest2[1];
+//            }else{
+//                closest1 = getClosest(a1.state, agent1.ID, playerIDs);
+//                closest2 = getClosest(a1.state, agent2.ID, playerIDs);
+//                distanceUtil = closest1[1] + closest2[1];
+//            }
+//        }else{
+//            if (turn)
+//                partner = 0;
+//            else if (!turn && playerIDs.size()>1) {
+//                partner = 2;
+//            }else{
+//                partner = 1;
+//            }
+//            if(turn){
+//                closest1 = getClosest(a1.state, partner, enemyIDs);
+//                distanceUtil = closest1[1];
+//            }else{
+//                closest1 = getClosest(a1.state, partner, playerIDs);
+//                distanceUtil = closest1[1];
+//            }
+//        }
+//
+//
+//        //Now calculate the hpUtil
+//        int hpUtil = 0;
+//        for (int i = 0; i < a1.playerIDs.size() + a1.numArchers; i++) {
+//            if (a1.units.get(i).type == 0) {
+//                hpUtil += a1.units.get(i).unitHP;
+//            }
+//            else
+//                hpUtil -= a1.units.get(i).unitHP;
+//        }
+//        // find trees in area
+//        double resources = 0;
+//        // for each footman
+//        for (int j = 0; j < a1.playerIDs.size() ; j++) {
+//            // for each space around him check resource locs
+//            for (MapLocation resource : resourceLocs) {
+//                if (a1.units.get(j).xPos+1 == resource.x && a1.units.get(j).yPos+1 == resource.y) resources++;
+//                if (a1.units.get(j).xPos+1 == resource.x && a1.units.get(j).yPos == resource.y) resources++;
+//                if (a1.units.get(j).xPos+1 == resource.x && a1.units.get(j).yPos-1 == resource.y) resources++;
+//                if (a1.units.get(j).xPos == resource.x && a1.units.get(j).yPos-1 == resource.y) resources++;
+//                if (a1.units.get(j).xPos-1 == resource.x && a1.units.get(j).yPos-1 == resource.y) resources++;
+//                if (a1.units.get(j).xPos-1 == resource.x && a1.units.get(j).yPos == resource.y) resources++;
+//                if (a1.units.get(j).xPos-1 == resource.x && a1.units.get(j).yPos+1 == resource.y) resources++;
+//                if (a1.units.get(j).xPos == resource.x && a1.units.get(j).yPos+1 == resource.y) resources++;
+//            }
+//        }
+//// make the total utility = hpUtil - a scalar of distanceUtil - scalar of resources nearby
+//        return hpUtil - (5*distanceUtil) - (5*resources);
+//    }
 
-		gameState.board.resources.values().stream().forEach( (e) -> {		
-			this.board.addResource(e.getId(), e.getX(), e.getY());		
-		});
-		this.ourTurn = !gameState.ourTurn;
-		this.utilityCalculated = gameState.utilityCalculated;
-		this.utility = gameState.utility;
-	}
 
-	/**
-	 * Determines the "goodness" of a state. Includes things like being able to attack an opponent
-	 * current health and location relative to obstacles (resources) and enemies
-	 * 
-	 * For more information on each specific feature see comments on each ...Utility() function
-	 * 
-	 * @return
-	 */
-	public double getUtility() {
-		if(this.utilityCalculated){
-			return this.utility;
-		}
 
-		// Calculate features included
-		this.utility += getHasGoodAgentsUtility();
-		this.utility += getHasBadAgentsUtility();
-		this.utility += getHealthUtility();
-		this.utility += getDamageToEnemyUtility();
-		this.utility += getCanAttackUtility();
-		this.utility += getLocationUtility();
+    /**
+     * You will implement this function.
+     *
+     * This will return a list of GameStateChild objects. You will generate all of the possible
+     * actions in a step and then determine the resulting game state from that action. These are your GameStateChildren.
+     *
+     * It may be useful to be able to create a SEPIA Action. In this assignment you will
+     * deal with movement and attacking actions. There are static methods inside the Action
+     * class that allow you to create basic actions:
+     * Action.createPrimitiveAttack(int attackerID, int targetID): returns an Action where
+     * the attacker unit attacks the target unit.
+     * Action.createPrimitiveMove(int unitID, Direction dir): returns an Action where the unit
+     * moves one space in the specified direction.
+     *
+     * You may find it useful to iterate over all the different directions in SEPIA. This can
+     * be done with the following loop:
+     * for(Direction direction : Directions.values())
+     *
+     * To get the resulting position from a move in that direction you can do the following
+     * x += direction.xComponent()
+     * y += direction.yComponent()
+     *
+     * If you wish to explicitly use a Direction you can use the Direction enum, for example
+     * Direction.NORTH or Direction.NORTHEAST.
+     *
+     * You can check many of the properties of an Action directly:
+     * action.getType(): returns the ActionType of the action
+     * action.getUnitID(): returns the ID of the unit performing the Action
+     *
+     * ActionType is an enum containing different types of actions. The methods given above
+     * create actions of type ActionType.PRIMITIVEATTACK and ActionType.PRIMITIVEMOVE.
+     *
+     * For attack actions, you can check the unit that is being attacked. To do this, you
+     * must cast the Action as a TargetedAction:
+     * ((TargetedAction)action).getTargetID(): returns the ID of the unit being attacked
+     *
+     * @return All possible actions and their associated resulting game state
+     */
+    public boolean isEmpty(int x, int y, int ID) {
+        ArrayList<MapLocation> unitLocations = new ArrayList<MapLocation>();
+        List<Integer> otherPlayerIDs;
+        if(playerIDs.contains(ID)){
+            otherPlayerIDs = enemyIDs;
+        }else{
+            otherPlayerIDs = playerIDs;
+        }
+        for(NodeState i : units) {
+            //Should only add the unit of the friendly player and check if beside
+            if(i.ID != ID && !otherPlayerIDs.contains(i.ID)) unitLocations.add(new MapLocation(i.xPos,i.yPos));
+        }
+        MapLocation currentLocation = new MapLocation(x,y);
+        if (!resourceLocs.contains(currentLocation) || !unitLocations.contains(currentLocation)) return true;
+        else return false;
+    }
 
-		this.utilityCalculated = true;
-		return this.utility;
-	}
+    //These methods are taken from the archer class
+    int[] getLoc(State.StateView state, int unitId) {
+        Unit.UnitView unit = state.getUnit(unitId);
+        if (unit == null) {
+            return null;
+        } else {
+            int[] loc = new int[]{unit.getXPosition(), unit.getYPosition()};
+            return loc;
+        }
+    }
+    int getDist(int[] u1, int[] u2) {
+        return DistanceMetrics.chebyshevDistance(u1[0], u1[1], u2[0], u2[1]);
+    }
 
-	/**
-	 * @return the number of good agents or the MIN_UTILITY if all good agents are dead (the game is over and we lost) 
-	 */
-	private double getHasGoodAgentsUtility() {
-		return this.board.getAliveGoodAgents().isEmpty() ? MIN_UTILITY : this.board.getAliveGoodAgents().size();
-	}
+    int[] getClosest(State.StateView state, int unitId, List<Integer> opponentIds) {
+        int[] unitLoc = this.getLoc(state, unitId);
+        int closestOppoId = -1;
+        int closestDist = 2147483647;
 
-	/**
-	 * @return the number of bad agents or the MAX_UTILITY if all bad agents are dead (the game is over and we won) 
-	 */
-	private double getHasBadAgentsUtility() {
-		return this.board.getAliveBadAgents().isEmpty() ? MAX_UTILITY : this.board.getAliveBadAgents().size();
-	}
+        for(int i = 0; i < opponentIds.size(); ++i) {
+            int[] oppoLoc = this.getLoc(state, (Integer)opponentIds.get(i));
+            int tempDist = this.getDist(unitLoc, oppoLoc);
+            if (tempDist < closestDist) {
+                closestDist = tempDist;
+                closestOppoId = (Integer)opponentIds.get(i);
+            }
+        }
 
-	/**
-	 * @return the amount of health each footman has
-	 */
-	private double getHealthUtility() {
-		double utility = 0.0;
-		for(Agent agent : this.board.getAliveGoodAgents()){
-			utility += agent.getHp()/agent.getPossibleHp();
-		}
-		return utility;
-	}
+        return new int[]{closestOppoId, closestDist};
+    }
+    //def better way to do this
+    public int checkForAttackNextToPlayer(int x, int y) {
+        ArrayList<MapLocation> enemyUnitLocations = new ArrayList<MapLocation>();
+        MapLocation currentLocation = new MapLocation(x,y);
+        int myID = -1;
+        for(NodeState i : units) {
+            //Should only add the unit of the friendly player and check if beside
+            if(i.xPos == x && i.yPos == y && i.type == 1){
+                myID = i.ID;
+            }
+        }
+        return myID;
+    }
 
-	/**
-	 * @return how much damage has been done to each archer
-	 */
-	private double getDamageToEnemyUtility() {
-		double utility = 0.0;
-		for(Agent agent : this.board.getAliveBadAgents()){
-			utility += agent.getPossibleHp() - agent.getHp();		
-		}
-		return utility;
-	}
+    public boolean legalMove(int x, int y, int comp1, int comp2) {
+        return (!(Math.abs(comp1) == 1 && Math.abs(comp2) == 1) && x <= xExtent && x >= 0 && y <= yExtent && y >= 0);
+    }
 
-	/**
-	 * @return the number of agents that are within range of the footmen
-	 */
-	private double getCanAttackUtility() {
-		double utility = 0.0;
-		for(Agent agent : this.board.getAliveGoodAgents()){
-			utility += this.board.findAttackableAgents(agent).size();		
-		}
-		return utility;
-	}
 
-	/**
-	 * @return how optimal the footman positions are attempts to deal with obstacles (resources)
-	 */
-	private double getLocationUtility() {
-		if(this.board.resources.isEmpty() ||
-				noResourcesAreInTheArea()){
-			return distanceFromEnemy() * -1;
-		}
-		double percentageBlocked = percentageOfBlockedFootmen();
-		if(percentageBlocked > 0){
-			return -200000 * percentageBlocked;
-		}
-		return distanceFromEnemy() * -1;
-	}
+    public List<Action> getValidNeighbors(NodeState agent){
+        ArrayList<Action> moves = new ArrayList<Action>();
+        for(Direction direction: Direction.values()) {
+            int nextX = agent.xPos + direction.xComponent();
+            int nextY = agent.yPos + direction.yComponent();
+            if(isEmpty(nextX, nextY, agent.ID) == true && legalMove(nextX, nextY,direction.xComponent(),direction.yComponent()) ) {
+                if(checkForAttackNextToPlayer(nextX,nextY) == -1) {
+                    moves.add(Action.createPrimitiveMove(agent.ID, direction));
+                }else{
+                    moves.add(Action.createPrimitiveAttack(agent.ID, checkForAttackNextToPlayer(nextX,nextY)));
+                }
+            }
+        }
+        return moves;
+    }
 
-	/**
-	 * a footman is blocked when the diaganol path between it an the enemy is blocked by trees
-	 * @return  number of blocked footman / total number of footmen
-	 */
-	private double percentageOfBlockedFootmen() {
-		int numBlocked = 0;
-		int totalNumGood = 0;
-		for(Agent goodGuy : this.board.getAliveGoodAgents()){
-			Agent badGuy = this.getClosestEnemy(goodGuy);
-			if(badGuy != null){
-				int i = goodGuy.getX();
-				int j = goodGuy.getY();
-				while(i != badGuy.getX() || j != badGuy.getY()){
-					if(this.board.isOnBoard(i, j) && this.board.isResource(i, j) ){
-						numBlocked++;
-					}
-					if(i < badGuy.getX()){
-						i++;
-					} else if (i > badGuy.getX()) {
-						i--;
-					}
-					if(j < badGuy.getY()){
-						j++;
-					} else if(j > badGuy.getY()){
-						j--;
-					}
-				}
-			}
-			totalNumGood++;
-		}
-		if(totalNumGood == 0){
-			return 0;
-		}
-		return numBlocked/totalNumGood;
-	}
+    public List<GameStateChild> getChildren(Boolean turn) {
+        List<Action> temp = new ArrayList<Action>();
+        List<Action> temp2 = new ArrayList<Action>();
+        List<GameStateChild> states = new ArrayList<GameStateChild>();
+        int range = 10;
+        int partner1;
+        int partner2;
+        int partner;
 
-	/**
-	 * @return true if no resources even near either footman archer pair
-	 */
-	private boolean noResourcesAreInTheArea(){
-		int count = 0;
-		int numGood = 0;
-		for(Agent goodGuy : this.board.getAliveGoodAgents()){
-			for(Agent badGuy : this.board.getAliveBadAgents()){
-				if(numResourceInAreaBetween(goodGuy, badGuy) != 0){
-					count++;
-				}
-			}
-			numGood++;
-		}
-		return count < numGood;
-	}
+        if (turn) {
+            partner1 = 0;
+            partner2 = 1;
+        } else if(!turn && playerIDs.size() > 1){
+            partner1 = 2;
+            partner2 = 3;
+        }else{
+            partner1 = 1;
+            partner2 = 2;
+        }
 
-	/**
-	 * @param goodGuy
-	 * @param badGuy
-	 * @return the number of resources in the largest rectangle possible between the two agent's coordinates 
-	 */
-	private double numResourceInAreaBetween(Agent goodGuy, Agent badGuy){
-		double resources = 0.0;
-		for(int i = Math.min(goodGuy.getX(), badGuy.getX()); i < Math.max(goodGuy.getX(), badGuy.getX()); i++){
-			for(int j = Math.min(goodGuy.getY(), badGuy.getY()); j < Math.max(goodGuy.getY(), badGuy.getY()); j++){
-				if(this.board.isResource(i, j)){
-					resources += 1;
-				}
-			}
-		}
-		return resources;
-	}
-
-	/**
-	 * @return the sum of the distances to the closest enemy for each footman
-	 */
-	private double distanceFromEnemy() {
-		double utility = 0.0;
-		for(Agent goodAgent : this.board.getAliveGoodAgents()){
-			double value = Double.POSITIVE_INFINITY;
-			for(Agent badAgent : this.board.getAliveBadAgents()){
-				value = Math.min(this.board.distance(goodAgent, badAgent), value);
-			}
-			if(value != Double.POSITIVE_INFINITY){
-				utility += value;
-			}
-		}
-		return utility;
-	}
-
-	/**
-	 * @param goodAgent
-	 * @return the closest aarcher to the footman given
-	 */
-	private Agent getClosestEnemy(Agent goodAgent) {
-		Agent closestEnemy = null;
-		for(Agent badAgent : this.board.getAliveBadAgents()){
-			if(closestEnemy == null){
-				closestEnemy = badAgent;
-			} else if(this.board.distance(goodAgent, badAgent) < this.board.distance(goodAgent, closestEnemy)){
-				closestEnemy = badAgent;
-			}
-		}
-		return closestEnemy;
-	}
-
-	/**
-	 * Takes into account the current turn (good or bad) and generates children for 
-	 * the current ply.
-	 * 
-	 * @return all of the possible children of this GameState
-	 */
-	public List<GameStateChild> getChildren() {
-		Collection<Agent> agentsActiveThisTurn;
-		if(ourTurn){
-			agentsActiveThisTurn = this.board.getAliveGoodAgents();
-		} else {
-			agentsActiveThisTurn = this.board.getAliveBadAgents();
-		}
-		List<List<Action>> actionsForEachAgent = agentsActiveThisTurn.stream()
-				.map(e -> getActionsForAgent(e))
-				.collect(Collectors.toList());
-		List<Map<Integer, Action>> actionMaps = enumerateActionCombinations(actionsForEachAgent);
-		return enumerateChildrenFromActionMaps(actionMaps);
-	}
-
-	/**
-	 * For a given agent generates all their possible moves:
-	 * Move: NORTH, EAST, SOUTH, WEST or
-	 * Attack any enemy close enough
-	 * @param agent
-	 * @return List of actions given agent could take
-	 */
-	private List<Action> getActionsForAgent(Agent agent){
-		List<Action> actions = new ArrayList<Action>();
-		for(Direction direction : Direction.values()){
-			switch(direction){
-			case NORTH :
-			case EAST :
-			case SOUTH :
-			case WEST :
-				int nextX = agent.getX() + direction.xComponent();
-				int nextY = agent.getY() + direction.yComponent();
-				if(this.board.isOnBoard(nextX, nextY) && this.board.isEmpty(nextX, nextY)){
-					actions.add(Action.createPrimitiveMove(agent.getId(), direction));
-				}
-				break;
-			default :
-				break;
-			}
-		}
-		for(Integer id : this.board.findAttackableAgents(agent)){
-			actions.add(Action.createPrimitiveAttack(agent.getId(), id));
-		}
-		return actions;
-	}
-
-	/**
-	 * Give a list of actions for every agent returns Maps from unitId to Action for each
-	 * possible combination of actions for a pair of footmen or archers
-	 */
-	private List<Map<Integer, Action>> enumerateActionCombinations(List<List<Action>> allActions){
-		List<Map<Integer, Action>> actionMaps = new ArrayList<Map<Integer, Action>>();
-		if(allActions.isEmpty()){
-			return actionMaps;
-		}
-		List<Action> actionsForFirstAgent = allActions.get(0);	
-		for(Action actionForAgent : actionsForFirstAgent){
-			if(allActions.size() == 1){
-				Map<Integer, Action> actionMap = new HashMap<Integer, Action>();
-				actionMap.put(actionForAgent.getUnitId(), actionForAgent);
-				actionMaps.add(actionMap);
-			} else {
-				for(Action actionForOtherAgent : allActions.get(1)){
-					Map<Integer, Action> actionMap = new HashMap<Integer, Action>();
-					actionMap.put(actionForAgent.getUnitId(), actionForAgent);
-					actionMap.put(actionForOtherAgent.getUnitId(), actionForOtherAgent);
-					actionMaps.add(actionMap);
-				}
-			}
-		}
-		return actionMaps;
-	}
-
-	/**
-	 * Given all Maps from unitId to Action that are possible for the current ply generate
-	 * the GameStateChild for each Map 
-	 */
-	private List<GameStateChild> enumerateChildrenFromActionMaps(List<Map<Integer, Action>> actionMaps){
-		List<GameStateChild> children = new ArrayList<GameStateChild>(25);
-		for(Map<Integer, Action> actionMap : actionMaps){
-			GameState child = new GameState(this);
-			for(Action action : actionMap.values()){
-				child.applyAction(action);
-			}
-			children.add(new GameStateChild(actionMap, child));
-		}
-		return children;
-	}
-
-	/**
-	 * Applies a given action to this GameState
-	 * @param action either a move or an attack
-	 */
-	private void applyAction(Action action) {
-		if(action.getType().name().equals(ACTION_MOVE_NAME)){
-			DirectedAction directedAction = (DirectedAction) action;
-			this.board.moveAgentBy(directedAction.getUnitId(), directedAction.getDirection().xComponent(), directedAction.getDirection().yComponent());
-		} else {
-			TargetedAction targetedAction = (TargetedAction) action;
-			Agent attacker = this.board.getAgent(targetedAction.getUnitId());
-			Agent attacked = this.board.getAgent(targetedAction.getTargetId());
-			this.board.attackAgent(attacker, attacked);
-		}
-	}
-
+        if ((turn && playerIDs.size() > 1) || (!turn && enemyIDs.size() > 1)) {
+            NodeState agent1 = units.get(partner1);
+            NodeState agent2 = units.get(partner2);
+            temp = getValidNeighbors(agent1);
+            for (Action k : temp) {
+                //archer attack1 moves
+                temp2 = getValidNeighbors(agent2);
+                for (Action j : temp2) {
+                    HashMap<Integer, Action> allStates = new HashMap<Integer, Action>();
+                    allStates.put(agent1.ID, k);
+                    allStates.put(agent2.ID, j);
+                    states.add(new GameStateChild(allStates, GameState.this));
+                    //allStates.clear();
+                }
+            }
+            if (!turn) {
+                int[] archerOneDist;
+                archerOneDist = getClosest(savedState, agent1.ID, playerIDs);
+                if (archerOneDist[1] <= range) {
+                    for (Action j : temp2) {
+                        HashMap<Integer, Action> allStates1 = new HashMap<Integer, Action>();
+                        Action AttackArcher = Action.createCompoundAttack(agent1.ID, archerOneDist[0]);
+                        allStates1.put(agent1.ID, AttackArcher);
+                        allStates1.put(agent2.ID, j);
+                        states.add(new GameStateChild(allStates1, GameState.this));
+                    }
+                }
+                int[] archerTwoDist;
+                archerTwoDist = getClosest(savedState, agent2.ID, playerIDs);
+                if (archerTwoDist[1] <= range) {
+                    for (Action k : temp) {
+                        HashMap<Integer, Action> allStates2 = new HashMap<Integer, Action>();
+                        Action AttackArcher = Action.createCompoundAttack(agent2.ID, archerTwoDist[0]);
+                        allStates2.put(agent2.ID, AttackArcher);
+                        allStates2.put(agent1.ID, k);
+                        states.add(new GameStateChild(allStates2, GameState.this));
+                    }
+                }
+                if (archerTwoDist[1] <= range && archerOneDist[1] <= range) {
+                    HashMap<Integer, Action> allStates3 = new HashMap<Integer, Action>();
+                    Action AttackArcher1 = Action.createCompoundAttack(agent1.ID, archerTwoDist[0]);
+                    Action AttackArcher2 = Action.createCompoundAttack(agent2.ID, archerTwoDist[0]);
+                    allStates3.put(agent2.ID, AttackArcher1);
+                    allStates3.put(agent1.ID, AttackArcher2);
+                    states.add(new GameStateChild(allStates3, GameState.this));
+                }
+            }
+        }
+        //this is used for one player left
+        else if (turn && playerIDs.size() > 0 || !turn && enemyIDs.size() > 0) {
+            if (turn)
+                partner = 0;
+            else if (!turn && playerIDs.size()>1) {
+                partner = 2;
+            }else{
+                partner = 1;
+            }
+            NodeState agent1 = units.get(partner);
+            temp = getValidNeighbors(agent1);
+            for (Action k : temp) {
+                HashMap<Integer, Action> allStates = new HashMap<Integer, Action>();
+                allStates.put(agent1.ID, k);
+                states.add(new GameStateChild(allStates, GameState.this));
+            }
+            if (!turn) {
+                int[] archerOneDist;
+                archerOneDist = getClosest(savedState, agent1.ID, playerIDs);
+                if (archerOneDist[1] <= range) {
+                    for (Action j : temp2) {
+                        HashMap<Integer, Action> allStates1 = new HashMap<Integer, Action>();
+                        Action AttackArcher = Action.createCompoundAttack(agent1.ID, archerOneDist[0]);
+                        allStates1.put(agent1.ID, AttackArcher);
+                        states.add(new GameStateChild(allStates1, GameState.this));
+                    }
+                }
+            }
+        }
+        return states;
+    }
 }
